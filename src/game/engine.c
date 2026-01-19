@@ -27,31 +27,34 @@ void engineRender()
     engineDrawDebugOverlay();
     
     char moveText[30];
-    sprintf(moveText, "Moves: %d  ", currentState.moveCount);
+    sprintf(moveText, "Moves: %d  ", gameState.moveCount);
     VDP_drawTextBG(BG_B, moveText, 1, 1);
     
-    sprintf(moveText, "History: %d/%d  ", historyIndex, MAX_HISTORY);
+    sprintf(moveText, "History: %d/%d  ", gameState.historyIndex, MAX_HISTORY);
     VDP_drawTextBG(BG_B, moveText, 1, 2);
 
-    sprintf(moveText, "Physics: %d,%d  ", currentState.physicsX, currentState.physicsY);
+    sprintf(moveText, "Physics: %d,%d  ", gameState.physicsX, gameState.physicsY);
     VDP_drawTextBG(BG_B, moveText, 1, 3);
 
-    sprintf(moveText, "Player: %d,%d ", currentState.playerX, currentState.playerY);
+    sprintf(moveText, "Player: %d,%d ", gameState.playerX, gameState.playerY);
     VDP_drawTextBG(BG_B, moveText, 1, 4);
 
-    sprintf(moveText, "Waiting: %s  ", currentState.physicsWaitingForPlayer ? "Yes" : "No");
+    sprintf(moveText, "Waiting: %s  ", gameState.physicsWaitingForPlayer ? "Yes" : "No");
     VDP_drawTextBG(BG_B, moveText, 1, 5);
+
+    sprintf(moveText, "Push: %s  ", gameState.isPushAction ? "Yes" : "No");
+    VDP_drawTextBG(BG_B, moveText, 1, 6);
 }
 
 void engineUpdateCamera()
 {
-    u8 mapOffsetTilesX = (64 - (currentState.width * 2)) / 2;
-    u8 mapOffsetTilesY = (32 - (currentState.height * 2)) / 2;
+    u8 mapOffsetTilesX = (64 - (gameState.width * 2)) / 2;
+    u8 mapOffsetTilesY = (32 - (gameState.height * 2)) / 2;
     s16 mapOffsetX = mapOffsetTilesX * 8;
     s16 mapOffsetY = mapOffsetTilesY * 8;
     
-    s16 mapWidth = currentState.width * 16;
-    s16 mapHeight = currentState.height * 16;
+    s16 mapWidth = gameState.width * 16;
+    s16 mapHeight = gameState.height * 16;
     
     s16 cameraX, cameraY;
     
@@ -59,8 +62,8 @@ void engineUpdateCamera()
         cameraX = mapOffsetX - ((320 - mapWidth) / 2);
         cameraY = mapOffsetY - ((224 - mapHeight) / 2);
     } else {
-        s16 playerPixelX = (currentState.playerX * 16) + mapOffsetX;
-        s16 playerPixelY = (currentState.playerY * 16) + mapOffsetY;
+        s16 playerPixelX = (gameState.playerX * 16) + mapOffsetX;
+        s16 playerPixelY = (gameState.playerY * 16) + mapOffsetY;
         
         cameraX = playerPixelX - 160 + 8;
         cameraY = playerPixelY - 112 + 8;
@@ -85,22 +88,23 @@ void engineUpdateCamera()
 void engineDrawUI()
 {
     VDP_drawTextBG(BG_B, "PERFECT DASH", 13, 0);
-    VDP_drawTextBG(BG_B, "Arrow Keys: Move", 1, 26);
-    VDP_drawTextBG(BG_B, "B: Rewind", 1, 27);
+    VDP_drawTextBG(BG_B, "Arrows: Move", 1, 25);
+    VDP_drawTextBG(BG_B, "A+Dir: Push  B: Rewind", 1, 26);
+    VDP_drawTextBG(BG_B, "C (hold): Restart", 1, 27);
 }
 
 void engineDrawDebugOverlay()
 {
     extern u8 physicsProcessed[MAX_GRID_SIZE][MAX_GRID_SIZE];
     
-    u8 offsetX = (64 - (currentState.width * 2)) / 2;
-    u8 offsetY = (32 - (currentState.height * 2)) / 2;
+    u8 offsetX = (64 - (gameState.width * 2)) / 2;
+    u8 offsetY = (32 - (gameState.height * 2)) / 2;
     offsetY -= 2;
     
-    for (u8 x = 0; x < currentState.width; x++) {
-        for (u8 y = 0; y < currentState.height; y++) {
-            u8 tile = currentState.grid[x][y];
-            u8 state = currentState.state[x][y];
+    for (u8 x = 0; x < gameState.width; x++) {
+        for (u8 y = 0; y < gameState.height; y++) {
+            u8 tile = gameState.grid[x][y];
+            u8 state = gameState.state[x][y];
             u8 processed = physicsProcessed[x][y];
             
             u8 screenX = offsetX + (x * 2);

@@ -18,8 +18,10 @@
 
 #define INITIAL_REPEAT_DELAY 20
 #define REPEAT_RATE 4 
+#define RESTART_HOLD_TIME 60
 
 typedef struct {
+    u8 original[MAX_GRID_SIZE][MAX_GRID_SIZE];
     u8 grid[MAX_GRID_SIZE][MAX_GRID_SIZE];
     u8 state[MAX_GRID_SIZE][MAX_GRID_SIZE];
     u8 playerX, playerY;
@@ -28,16 +30,19 @@ typedef struct {
     u8 width, height;
     u8 physicsX, physicsY;
     bool physicsWaitingForPlayer;
+    bool isPushAction;
+
+    u8 history[MAX_HISTORY][MAX_GRID_SIZE][MAX_GRID_SIZE];
+    u16 historyIndex;
 } GameState;
 
-extern GameState currentState;
-extern GameState stateHistory[MAX_HISTORY];
-extern u16 historyIndex;
+extern GameState gameState;
 extern bool needsRedraw;
 
 void gameInit();
 void gameUpdatePhysics();
 void gameSaveState();
 void gameRewindState();
+void gameRestartMap();
 
 #endif
