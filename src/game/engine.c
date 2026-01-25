@@ -15,6 +15,7 @@ void engineInit()
     VDP_clearPlane(BG_A, TRUE);
     VDP_clearPlane(BG_B, TRUE);
     PAL_setPalette(PAL0, bg_tilemap.palette->data, DMA);
+    VDP_loadTileSet(bg_tilemap.tileset, TILE_USER_INDEX, DMA);
     PAL_setColor(63, RGB24_TO_VDPCOLOR(0xFFFFFF));
     JOY_init();
     engineDrawUI();

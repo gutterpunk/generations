@@ -1,1 +1,1 @@
-IMAGE bg_tilemap "tilemap.png" NONE
+IMAGE bg_tilemap "tiles.png" NONE NONE

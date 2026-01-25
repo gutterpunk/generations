@@ -6,18 +6,18 @@
 #define MAX_GRID_SIZE 20
 #define MAX_HISTORY 50
 
-#define TILE_EMPTY 0
+#define TILE_EMPTY 2
 #define TILE_WALL 1
-#define TILE_DIRT 2
+#define TILE_DIRT 4
 #define TILE_BOULDER 3
-#define TILE_DIAMOND 4
-#define TILE_PLAYER 5
+#define TILE_DIAMOND 32
+#define TILE_PLAYER 16
 
 #define STATE_STATIONARY 0
 #define STATE_FALLING 1
 
-#define INITIAL_REPEAT_DELAY 20
-#define REPEAT_RATE 4 
+#define INITIAL_REPEAT_DELAY 8
+#define REPEAT_RATE 2
 #define RESTART_HOLD_TIME 60
 
 typedef struct {
@@ -32,12 +32,16 @@ typedef struct {
     bool physicsWaitingForPlayer;
     bool isPushAction;
 
+    //interim frame, object to draw is placed here before rendering from the engine loop, at half movement
+    u8 interim[MAX_GRID_SIZE * 2][MAX_GRID_SIZE * 2]; 
+
     u8 history[MAX_HISTORY][MAX_GRID_SIZE][MAX_GRID_SIZE];
     u16 historyIndex;
 } GameState;
 
 extern GameState gameState;
 extern bool needsRedraw;
+extern u32 frameCounter;
 
 void gameInit();
 void gameUpdatePhysics();

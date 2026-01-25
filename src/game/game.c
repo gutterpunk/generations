@@ -66,6 +66,7 @@ static bool tryRoll(u8 x, u8 y, u8 tile)
             gameState.grid[x][y] = TILE_EMPTY;
             gameState.state[x][y] = STATE_STATIONARY;
             gameState.grid[x - 1][y] = tile;
+            gameState.interim[(x - 1) * 2][y * 2] = tile;
             gameState.state[x - 1][y] = STATE_FALLING;
             physicsProcessed[x - 1][y] = 1;
             needsRedraw = TRUE;
@@ -79,6 +80,7 @@ static bool tryRoll(u8 x, u8 y, u8 tile)
             gameState.grid[x][y] = TILE_EMPTY;
             gameState.state[x][y] = STATE_STATIONARY;
             gameState.grid[x + 1][y] = tile;
+            gameState.interim[(x + 1) * 2][y * 2] = tile;
             gameState.state[x + 1][y] = STATE_FALLING;
             physicsProcessed[x + 1][y] = 1;
             needsRedraw = TRUE;
@@ -88,11 +90,12 @@ static bool tryRoll(u8 x, u8 y, u8 tile)
     
     return FALSE;
 }
-static void playerMoveOrAction(bool isPush, u8 newX, u8 newY) 
+static void playerMoveOrAction(bool isPush, u8 newX, u8 newY, s8 dirX, s8 dirY) 
 {
     if (!isPush) {
         gameState.grid[gameState.playerX][gameState.playerY] = TILE_EMPTY;
         gameState.grid[newX][newY] = TILE_PLAYER;
+        gameState.interim[newX * 2 + dirX][newY * 2 + dirY] = TILE_PLAYER;
         physicsProcessed[newX][newY] = 1;
     } else {
         gameState.grid[newX][newY] = TILE_EMPTY;
@@ -116,7 +119,7 @@ static void updatePlayerPhysics()
         if (targetTile == TILE_EMPTY || targetTile == TILE_DIRT) {
             gameSaveState();
             
-            playerMoveOrAction(isPush, newX, newY);
+            playerMoveOrAction(isPush, newX, newY, gameState.playerDirectionX, gameState.playerDirectionY);
             
             needsRedraw = TRUE;
         }
@@ -131,7 +134,7 @@ static void updatePlayerPhysics()
                 gameState.state[pushX][newY] = STATE_STATIONARY;
                 physicsProcessed[pushX][newY] = 1;
                 
-                playerMoveOrAction(isPush, newX, newY);
+                playerMoveOrAction(isPush, newX, newY, gameState.playerDirectionX, gameState.playerDirectionY);
                                                 
                 needsRedraw = TRUE;
             }
@@ -150,6 +153,7 @@ void gameUpdatePhysics()
     
     if (gameState.physicsX == 0 && gameState.physicsY == 0) {
         memset(physicsProcessed, 0, MAX_GRID_SIZE * MAX_GRID_SIZE);
+        memset(gameState.interim, 0, MAX_GRID_SIZE * 2 * MAX_GRID_SIZE * 2);
     }
     
     u8 startX = gameState.physicsX;
@@ -181,16 +185,21 @@ void gameUpdatePhysics()
             u8 state = gameState.state[x][y];
             
             if (tile == TILE_BOULDER || tile == TILE_DIAMOND) {
-                if (y >= h - 1) continue;
                 
-                u8 below = gameState.grid[x][y + 1];
-                u8 belowState = gameState.state[x][y + 1];
-                
+                u8 below = TILE_WALL; 
+                u8 belowState = STATE_STATIONARY;
+                if (y < h - 1)
+                {
+                    below = gameState.grid[x][y + 1];
+                    belowState = gameState.state[x][y + 1];                
+                }
+
                 if (state == STATE_STATIONARY) {
                     if (below == TILE_EMPTY) {
                         gameState.grid[x][y] = TILE_EMPTY;
                         gameState.state[x][y] = STATE_STATIONARY;
                         gameState.grid[x][y + 1] = tile;
+                        gameState.interim[x * 2][(y + 1) * 2] = tile;
                         gameState.state[x][y + 1] = STATE_FALLING;
                         physicsProcessed[x][y + 1] = 1;
                         needsRedraw = TRUE;
@@ -204,6 +213,7 @@ void gameUpdatePhysics()
                         gameState.grid[x][y] = TILE_EMPTY;
                         gameState.state[x][y] = STATE_STATIONARY;
                         gameState.grid[x][y + 1] = tile;
+                        gameState.interim[x * 2][(y + 1) * 2] = tile;
                         gameState.state[x][y + 1] = STATE_FALLING;
                         physicsProcessed[x][y + 1] = 1;
                         needsRedraw = TRUE;
@@ -212,13 +222,16 @@ void gameUpdatePhysics()
                         if (isRounded(below, belowState)) {
                             if (!tryRoll(x, y, tile)) {
                                 gameState.state[x][y] = STATE_STATIONARY;
+                                gameState.interim[x * 2][y * 2] = tile;
                             }
                         }
                         else if (below == TILE_PLAYER) {
                             gameState.state[x][y] = STATE_STATIONARY;
+                            gameState.interim[x * 2][y * 2] = tile;
                         }
                         else {
                             gameState.state[x][y] = STATE_STATIONARY;
+                            gameState.interim[x * 2][y * 2] = tile;
                         }
                     }
                 }

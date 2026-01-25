@@ -20,10 +20,7 @@ int main()
         playerHandleInput();
         gameUpdatePhysics();
         
-        if (needsRedraw) {
-            engineRender();
-            needsRedraw = FALSE;
-        }
+        engineRender();
         
         SYS_doVBlankProcess();
     }
