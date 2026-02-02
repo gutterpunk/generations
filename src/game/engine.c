@@ -7,6 +7,7 @@
 #include "engine.h"
 #include "game.h"
 #include "map.h"
+#include "tiles.h"
 
 void engineInit()
 {
@@ -49,13 +50,13 @@ void engineRender()
 
 void engineUpdateCamera()
 {
-    u8 mapOffsetTilesX = (64 - (gameState.width * 2)) / 2;
-    u8 mapOffsetTilesY = (32 - (gameState.height * 2)) / 2;
+    u8 mapOffsetTilesX = (64 - (gameState.gridWidth * 2)) / 2;
+    u8 mapOffsetTilesY = (32 - (gameState.gridHeight * 2)) / 2;
     s16 mapOffsetX = mapOffsetTilesX * 8;
     s16 mapOffsetY = mapOffsetTilesY * 8;
     
-    s16 mapWidth = gameState.width * 16;
-    s16 mapHeight = gameState.height * 16;
+    s16 mapWidth = gameState.gridWidth * 16;
+    s16 mapHeight = gameState.gridHeight * 16;
     
     s16 cameraX, cameraY;
     
@@ -63,6 +64,7 @@ void engineUpdateCamera()
         cameraX = mapOffsetX - ((320 - mapWidth) / 2);
         cameraY = mapOffsetY - ((224 - mapHeight) / 2);
     } else {
+        // Player position is in logical coordinates, convert to pixels
         s16 playerPixelX = (gameState.playerX * 16) + mapOffsetX;
         s16 playerPixelY = (gameState.playerY * 16) + mapOffsetY;
         
@@ -98,14 +100,15 @@ void engineDrawDebugOverlay()
 {
     extern u8 physicsProcessed[MAX_GRID_SIZE][MAX_GRID_SIZE];
     
-    u8 offsetX = (64 - (gameState.width * 2)) / 2;
-    u8 offsetY = (32 - (gameState.height * 2)) / 2;
+    u8 offsetX = (64 - (gameState.gridWidth * 2)) / 2;
+    u8 offsetY = (32 - (gameState.gridHeight * 2)) / 2;
     offsetY -= 2;
     
-    for (u8 x = 0; x < gameState.width; x++) {
-        for (u8 y = 0; y < gameState.height; y++) {
-            u8 tile = gameState.grid[x][y];
-            u8 state = gameState.state[x][y];
+    for (u8 x = 0; x < gameState.gridWidth; x++) {
+        for (u8 y = 0; y < gameState.gridHeight; y++) {
+            ObjectState* objState = &gameState.objectGrid[x][y];
+            u8 tile = objState->object;
+            u8 state = objState->state;
             u8 processed = physicsProcessed[x][y];
             
             u8 screenX = offsetX + (x * 2);

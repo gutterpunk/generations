@@ -6,6 +6,8 @@
 #include "game.h"
 #include "map.h"
 #include "player.h"
+#include "tiles.h"
+
 
 // Global game state
 GameState gameState;
@@ -27,8 +29,8 @@ void gameInit()
 
 static void incrementPhysicsPosition()
 {
-    u8 w = gameState.width;
-    u8 h = gameState.height;
+    u8 w = gameState.gridWidth;
+    u8 h = gameState.gridHeight;
     
     u8 x = gameState.physicsX;
     u8 y = gameState.physicsY;
@@ -57,32 +59,50 @@ static bool isRounded(u8 tile, u8 state)
 
 static bool tryRoll(u8 x, u8 y, u8 tile)
 {
-    u8 w = gameState.width;
-    u8 h = gameState.height;
+    u8 w = gameState.gridWidth;
+    u8 h = gameState.gridHeight;
     
+    // Try roll left
     if (x > 0 && y < h - 1) {
-        if (gameState.grid[x - 1][y] == TILE_EMPTY &&
-            gameState.grid[x - 1][y + 1] == TILE_EMPTY) {
-            gameState.grid[x][y] = TILE_EMPTY;
-            gameState.state[x][y] = STATE_STATIONARY;
-            gameState.grid[x - 1][y] = tile;
-            gameState.interim[(x - 1) * 2][y * 2] = tile;
-            gameState.state[x - 1][y] = STATE_FALLING;
-            physicsProcessed[x - 1][y] = 1;
+        u8 leftX = x - 1;
+        u8 belowY = y + 1;
+        ObjectState* leftTileType = &gameState.objectGrid[leftX][y];
+        ObjectState* belowLeftTileType = &gameState.objectGrid[leftX][belowY];
+        if (leftTileType->object == TILE_EMPTY && belowLeftTileType->object == TILE_EMPTY) {
+            // Clear old position
+            setVisualMapTile(x * 2, y * 2, TILE_EMPTY);
+            gameState.objectGrid[x][y].object = TILE_EMPTY;
+            gameState.objectGrid[x][y].state = STATE_STATIONARY;
+            
+            // Set new position
+            setVisualMapTile(leftX * 2, y * 2, tile);
+            leftTileType->object = tile;
+            leftTileType->state = STATE_FALLING;
+
+            physicsProcessed[leftX][y] = 1;
             needsRedraw = TRUE;
             return TRUE;
         }
     }
     
+    // Try roll right
     if (x < w - 1 && y < h - 1) {
-        if (gameState.grid[x + 1][y] == TILE_EMPTY &&
-            gameState.grid[x + 1][y + 1] == TILE_EMPTY) {
-            gameState.grid[x][y] = TILE_EMPTY;
-            gameState.state[x][y] = STATE_STATIONARY;
-            gameState.grid[x + 1][y] = tile;
-            gameState.interim[(x + 1) * 2][y * 2] = tile;
-            gameState.state[x + 1][y] = STATE_FALLING;
-            physicsProcessed[x + 1][y] = 1;
+        u8 rightX = x + 1;
+        u8 belowY = y + 1;
+        ObjectState* rightTileType = &gameState.objectGrid[rightX][y];
+        ObjectState* belowRightTileType = &gameState.objectGrid[rightX][belowY];
+        if (rightTileType->object == TILE_EMPTY && belowRightTileType->object == TILE_EMPTY) {
+            // Clear old position
+            setVisualMapTile(x * 2, y * 2, TILE_EMPTY);
+            gameState.objectGrid[x][y].object = TILE_EMPTY;
+            gameState.objectGrid[x][y].state = STATE_STATIONARY;
+            
+            // Set new position
+            setVisualMapTile(rightX * 2, y * 2, tile);
+            rightTileType->object = tile;
+            rightTileType->state = STATE_FALLING;
+
+            physicsProcessed[rightX][y] = 1;
             needsRedraw = TRUE;
             return TRUE;
         }
@@ -93,12 +113,24 @@ static bool tryRoll(u8 x, u8 y, u8 tile)
 static void playerMoveOrAction(bool isPush, u8 newX, u8 newY, s8 dirX, s8 dirY) 
 {
     if (!isPush) {
-        gameState.grid[gameState.playerX][gameState.playerY] = TILE_EMPTY;
-        gameState.grid[newX][newY] = TILE_PLAYER;
-        gameState.interim[newX * 2 + dirX][newY * 2 + dirY] = TILE_PLAYER;
+        // Clear old player position
+        setVisualMapTile(gameState.playerX * 2, gameState.playerY * 2, TILE_EMPTY);
+        gameState.objectGrid[gameState.playerX][gameState.playerY].object = TILE_EMPTY;
+        gameState.objectGrid[gameState.playerX][gameState.playerY].state = STATE_STATIONARY;
+        
+        // Set new player position
+        setVisualMapTile(newX * 2, newY * 2, TILE_PLAYER);
+        gameState.objectGrid[newX][newY].object = TILE_PLAYER;
+        gameState.objectGrid[newX][newY].state = STATE_STATIONARY;
+        
+        gameState.playerX = newX;
+        gameState.playerY = newY;
         physicsProcessed[newX][newY] = 1;
     } else {
-        gameState.grid[newX][newY] = TILE_EMPTY;
+        // Clear area for push action
+        setVisualMapTile(newX * 2, newY * 2, TILE_EMPTY);
+        gameState.objectGrid[newX][newY].object = TILE_EMPTY;
+        gameState.objectGrid[newX][newY].state = STATE_STATIONARY;
     }
     gameState.moveCount++;
     if (gameState.physicsWaitingForPlayer) {
@@ -111,32 +143,40 @@ static void updatePlayerPhysics()
 {
     u8 newX = gameState.playerX + gameState.playerDirectionX;
     u8 newY = gameState.playerY + gameState.playerDirectionY;
+    u8 maxX = gameState.gridWidth;
+    u8 maxY = gameState.gridHeight;
     
-    if (newX < gameState.width && newY < gameState.height) {
-        u8 targetTile = gameState.grid[newX][newY];
+    if (newX < maxX && newY < maxY) {
+        ObjectState* targetTile = &gameState.objectGrid[newX][newY];
         bool isPush = gameState.isPushAction;
         
-        if (targetTile == TILE_EMPTY || targetTile == TILE_DIRT) {
+        if (targetTile->object == TILE_EMPTY || targetTile->object == TILE_DIRT) {
             gameSaveState();
             
             playerMoveOrAction(isPush, newX, newY, gameState.playerDirectionX, gameState.playerDirectionY);
             
             needsRedraw = TRUE;
         }
-        else if (targetTile == TILE_BOULDER && gameState.playerDirectionY == 0) {
+        else if (targetTile->object == TILE_BOULDER && gameState.playerDirectionY == 0) {
             u8 pushX = newX + gameState.playerDirectionX;
             
-            if (pushX < gameState.width &&
-                gameState.grid[pushX][newY] == TILE_EMPTY) {
-                gameSaveState();
+            if (pushX < maxX) {
+                ObjectState* pushTile = &gameState.objectGrid[pushX][newY];
                 
-                gameState.grid[pushX][newY] = TILE_BOULDER;
-                gameState.state[pushX][newY] = STATE_STATIONARY;
-                physicsProcessed[pushX][newY] = 1;
-                
-                playerMoveOrAction(isPush, newX, newY, gameState.playerDirectionX, gameState.playerDirectionY);
-                                                
-                needsRedraw = TRUE;
+                if (pushTile->object == TILE_EMPTY) {
+                    gameSaveState();
+                    
+                    // Move boulder
+                    setVisualMapTile(pushX * 2, newY * 2, TILE_BOULDER);
+                    pushTile->object = TILE_BOULDER;
+                    pushTile->state = STATE_STATIONARY;
+                    physicsProcessed[pushX][newY] = 1;
+                    
+                    // Player moves into boulder's old position
+                    playerMoveOrAction(isPush, newX, newY, gameState.playerDirectionX, gameState.playerDirectionY);
+                                                    
+                    needsRedraw = TRUE;
+                }
             }
         }
     }
@@ -144,8 +184,8 @@ static void updatePlayerPhysics()
 
 void gameUpdatePhysics()
 {
-    u8 w = gameState.width;
-    u8 h = gameState.height;
+    u8 w = gameState.gridWidth;   
+    u8 h = gameState.gridHeight;   
     
     if (gameState.physicsWaitingForPlayer) {
         return;
@@ -153,7 +193,6 @@ void gameUpdatePhysics()
     
     if (gameState.physicsX == 0 && gameState.physicsY == 0) {
         memset(physicsProcessed, 0, MAX_GRID_SIZE * MAX_GRID_SIZE);
-        memset(gameState.interim, 0, MAX_GRID_SIZE * 2 * MAX_GRID_SIZE * 2);
     }
     
     u8 startX = gameState.physicsX;
@@ -161,11 +200,10 @@ void gameUpdatePhysics()
         for (u8 x = startX; x < w; x++) {
             if (physicsProcessed[x][y]) {
                 continue;
-            }
-            
-            u8 tile = gameState.grid[x][y];
+            }            
+            ObjectState* tile = &gameState.objectGrid[x][y];
 
-            if (tile == TILE_PLAYER) {
+            if (tile->object == TILE_PLAYER) {
                 gameState.playerX = x;
                 gameState.playerY = y;
                 if (gameState.playerDirectionX != 0 || gameState.playerDirectionY != 0) {
@@ -182,56 +220,63 @@ void gameUpdatePhysics()
                 }
             }
             
-            u8 state = gameState.state[x][y];
-            
-            if (tile == TILE_BOULDER || tile == TILE_DIAMOND) {
-                
-                u8 below = TILE_WALL; 
+            if (tile->object == TILE_BOULDER || tile->object == TILE_DIAMOND) {
+                ObjectState* below = NULL;
+                u8 belowObject = TILE_WALL;
                 u8 belowState = STATE_STATIONARY;
-                if (y < h - 1)
-                {
-                    below = gameState.grid[x][y + 1];
-                    belowState = gameState.state[x][y + 1];                
+                
+                if (y < h - 1) {
+                    below = &gameState.objectGrid[x][y + 1];
+                    belowObject = below->object;
+                    belowState = below->state;
                 }
 
-                if (state == STATE_STATIONARY) {
-                    if (below == TILE_EMPTY) {
-                        gameState.grid[x][y] = TILE_EMPTY;
-                        gameState.state[x][y] = STATE_STATIONARY;
-                        gameState.grid[x][y + 1] = tile;
-                        gameState.interim[x * 2][(y + 1) * 2] = tile;
-                        gameState.state[x][y + 1] = STATE_FALLING;
-                        physicsProcessed[x][y + 1] = 1;
+                if (tile->state == STATE_STATIONARY) {
+                    if (belowObject == TILE_EMPTY) {
+                        // Save tile type before clearing
+                        u8 tileType = tile->object;
+                        
+                        // Clear old position
+                        setVisualMapTile(x * 2, y * 2, TILE_EMPTY);
+                        tile->object = TILE_EMPTY;
+                        tile->state = STATE_STATIONARY;
+                        
+                        // Set new position
+                        u8 newY = y + 1;
+                        setVisualMapTile(x * 2, newY * 2, tileType);
+                        below->object = tileType;
+                        below->state = STATE_FALLING;
+                        physicsProcessed[x][newY] = 1;
                         needsRedraw = TRUE;
                     }
-                    else if (isRounded(below, belowState)) {
-                        tryRoll(x, y, tile);
+                    else if (isRounded(belowObject, belowState)) {
+                        tryRoll(x, y, tile->object);
                     }
                 }
                 else {
-                    if (below == TILE_EMPTY) {
-                        gameState.grid[x][y] = TILE_EMPTY;
-                        gameState.state[x][y] = STATE_STATIONARY;
-                        gameState.grid[x][y + 1] = tile;
-                        gameState.interim[x * 2][(y + 1) * 2] = tile;
-                        gameState.state[x][y + 1] = STATE_FALLING;
-                        physicsProcessed[x][y + 1] = 1;
+                    if (belowObject == TILE_EMPTY) {
+                        // Clear old position
+                        u8 tileType = tile->object;
+                        setVisualMapTile(x * 2, y * 2, TILE_EMPTY);
+                        tile->object = TILE_EMPTY;
+                        tile->state = STATE_STATIONARY;
+                        
+                        // Set new position
+                        u8 newY = y + 1;
+                        setVisualMapTile(x * 2, newY * 2, tileType);
+                        below->object = tileType;
+                        below->state = STATE_FALLING;
+                        physicsProcessed[x][newY] = 1;
                         needsRedraw = TRUE;
                     }
                     else {
-                        if (isRounded(below, belowState)) {
-                            if (!tryRoll(x, y, tile)) {
-                                gameState.state[x][y] = STATE_STATIONARY;
-                                gameState.interim[x * 2][y * 2] = tile;
+                        if (isRounded(belowObject, belowState)) {
+                            if (!tryRoll(x, y, tile->object)) {
+                                tile->state = STATE_STATIONARY;
                             }
                         }
-                        else if (below == TILE_PLAYER) {
-                            gameState.state[x][y] = STATE_STATIONARY;
-                            gameState.interim[x * 2][y * 2] = tile;
-                        }
                         else {
-                            gameState.state[x][y] = STATE_STATIONARY;
-                            gameState.interim[x * 2][y * 2] = tile;
+                            tile->state = STATE_STATIONARY;
                         }
                     }
                 }
@@ -247,27 +292,42 @@ void gameUpdatePhysics()
 void gameSaveState()
 {
     if (gameState.historyIndex < MAX_HISTORY) {
-        memcpy(&gameState.history[gameState.historyIndex], &gameState.grid, sizeof(gameState.grid));
+        memcpy(&gameState.history[gameState.historyIndex], &gameState.objectGrid, sizeof(gameState.objectGrid));
         gameState.historyIndex++;
     } else {
         for (u16 i = 1; i < MAX_HISTORY; i++) {
-            memcpy(&gameState.history[i - 1], &gameState.history[i], sizeof(gameState.grid));
+            memcpy(&gameState.history[i - 1], &gameState.history[i], sizeof(gameState.objectGrid));
         }
-        memcpy(&gameState.history[MAX_HISTORY - 1], &gameState.grid, sizeof(gameState.grid));
+        memcpy(&gameState.history[MAX_HISTORY - 1], &gameState.objectGrid, sizeof(gameState.objectGrid));
     }
 }
 
 void gameRewindState()
 {
     if (gameState.historyIndex > 1) {
-        memcpy(&gameState.grid, &gameState.history[gameState.historyIndex - 1], sizeof(gameState.grid));
-        
         gameState.historyIndex--;
+        memcpy(&gameState.objectGrid, &gameState.history[gameState.historyIndex - 1], sizeof(gameState.objectGrid));
+        
+        // Rebuild visualGrid from objectGrid
+        for (u8 x = 0; x < gameState.gridWidth; x++) {
+            for (u8 y = 0; y < gameState.gridHeight; y++) {
+                setVisualMapTile(x * 2, y * 2, gameState.objectGrid[x][y].object);
+            }
+        }
+        needsRedraw = TRUE;
     }
 }
 
 void gameRestartMap()
 {
     gameState.historyIndex = 1;
-    memcpy(&gameState.grid, &gameState.original, sizeof(gameState.grid));
+    memcpy(&gameState.objectGrid, &gameState.original, sizeof(gameState.objectGrid));
+    
+    // Rebuild visualGrid from objectGrid
+    for (u8 x = 0; x < gameState.gridWidth; x++) {
+        for (u8 y = 0; y < gameState.gridHeight; y++) {
+            setVisualMapTile(x * 2, y * 2, gameState.objectGrid[x][y].object);
+        }
+    }
+    needsRedraw = TRUE;
 }
