@@ -7,7 +7,8 @@
 #define TILE_STRIDE 32
 
 #define TILE_EMPTY 2
-#define TILE_WALL 1
+#define TILE_STEEL 1
+#define TILE_WALL 0
 #define TILE_DIRT 4
 #define TILE_BOULDER 3
 #define TILE_PLAYER 16

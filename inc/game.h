@@ -24,6 +24,7 @@ typedef struct {
 
     ObjectState original[MAX_GRID_SIZE][MAX_GRID_SIZE];
     u8 visualGrid[MAX_GRID_SIZE * 2][MAX_GRID_SIZE * 2];
+    u8 betweenFramesGrid[MAX_GRID_SIZE * 2][MAX_GRID_SIZE * 2];
     ObjectState objectGrid[MAX_GRID_SIZE][MAX_GRID_SIZE];
     u8 playerX, playerY;
     s8 playerDirectionX, playerDirectionY;

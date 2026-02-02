@@ -18,6 +18,14 @@ void setVisualMapTile(u8 x, u8 y, u8 tileIndex) {
     gameState.visualGrid[x + 1][y + 1] = mapping->bottomRight;
 }
 
+void setBetweenFramesMapTile(u8 x, u8 y, u8 tileIndex) {
+    const TileMapping* mapping = getTileMapping(tileIndex);
+    gameState.betweenFramesGrid[x][y] = mapping->topLeft;
+    gameState.betweenFramesGrid[x + 1][y] = mapping->topRight;
+    gameState.betweenFramesGrid[x][y + 1] = mapping->bottomLeft;
+    gameState.betweenFramesGrid[x + 1][y + 1] = mapping->bottomRight;
+}
+
 void mapInit(u8 width, u8 height)
 {
     gameState.gridWidth = width;

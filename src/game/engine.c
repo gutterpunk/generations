@@ -19,7 +19,6 @@ void engineInit()
     VDP_loadTileSet(bg_tilemap.tileset, TILE_USER_INDEX, DMA);
     PAL_setColor(63, RGB24_TO_VDPCOLOR(0xFFFFFF));
     JOY_init();
-    engineDrawUI();
 }
 
 void engineRender()
@@ -86,14 +85,6 @@ void engineUpdateCamera()
     VDP_setVerticalScroll(BG_A, cameraY);
     VDP_setHorizontalScroll(BG_B, 0);
     VDP_setVerticalScroll(BG_B, 0);
-}
-
-void engineDrawUI()
-{
-    VDP_drawTextBG(BG_B, "PERFECT DASH", 13, 0);
-    VDP_drawTextBG(BG_B, "Arrows: Move", 1, 25);
-    VDP_drawTextBG(BG_B, "A+Dir: Push  B: Rewind", 1, 26);
-    VDP_drawTextBG(BG_B, "C (hold): Restart", 1, 27);
 }
 
 void engineDrawDebugOverlay()

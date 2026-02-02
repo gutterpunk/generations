@@ -3,6 +3,7 @@
 
 static const TileMapping tileLookup[TILE_MAX] = {
     [TILE_WALL] = {0, 1, TILE_STRIDE, TILE_STRIDE + 1, 1},
+    [TILE_STEEL] = {2, 3, TILE_STRIDE + 2, TILE_STRIDE + 3, 1},
     [TILE_EMPTY] = { 4, 5, TILE_STRIDE + 4, TILE_STRIDE + 5, 1},
     [TILE_BOULDER] = {6, 7, TILE_STRIDE + 6, TILE_STRIDE + 7, 1},
     [TILE_DIRT] = {8, 9, TILE_STRIDE + 8, TILE_STRIDE + 9, 1},
