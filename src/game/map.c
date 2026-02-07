@@ -7,6 +7,7 @@
 #include "game.h"
 #include "resources.h"
 #include "tiles.h"
+#include "gdr_reader.h"
 
 u32 frameCounter;
 
@@ -39,13 +40,34 @@ void setBothMapTile(u8 x, u8 y, u8 tileIndex) {
     gameState.visualGrid[x + 1][y + 1] = mapping->bottomRight;
 }
 
-void mapInit(u8 width, u8 height)
+/* GDR character to tile type mapping */
+static u8 mapGDRCharToTile(char c) {
+    switch(c) {
+        case '.': return TILE_EMPTY;
+        case '#': return TILE_WALL;
+        case '*': return TILE_DIRT;
+        case '0': return TILE_BOULDER;
+        case 'd': return TILE_DIAMOND;
+        case '%': return TILE_STEEL;
+        case 'X': return TILE_EXIT;
+        default: return TILE_EMPTY;
+    }
+}
+
+void mapInit(u16 boardIndex)
 {
-    gameState.gridWidth = width;
-    gameState.gridHeight = height;
+    extern const u8 gdr_data[];
+    GDRBoard board;
+    GDRSolution solution;
+    
+    /* Load board from GDR data - crash if fails */
+    GDR_LoadBoardData(gdr_data, boardIndex, &board, &solution);
+    
+    gameState.gridWidth = board.width;
+    gameState.gridHeight = board.height;
+    gameState.playerX = board.startX;
+    gameState.playerY = board.startY;
     gameState.moveCount = 0;
-    gameState.playerX = width / 2;
-    gameState.playerY = height / 2;
     gameState.historyIndex = 0;
     
     memset(gameState.visualGrid, TILE_EMPTY, MAX_GRID_SIZE * 2 * MAX_GRID_SIZE * 2);
@@ -53,48 +75,38 @@ void mapInit(u8 width, u8 height)
     u16 emptyTile = TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, 0);
     VDP_fillTileMapRect(BG_A, emptyTile, 0, 0, 64, 32);
     
-    // Fill  grid with tiles
-    for (u8 x = 0; x < width; x++) {
-        for (u8 y = 0; y < height; y++) {
+    for (u8 y = 0; y < gameState.gridHeight; y++) {
+        for (u8 x = 0; x < gameState.gridWidth; x++) {
+            u16 dataIdx = y * board.width + x;
+            char c = (dataIdx < GDR_MAX_DATA) ? board.data[dataIdx] : ' ';
+            u8 tileType = mapGDRCharToTile(c);
+            
             u8 gx = x * 2;
             u8 gy = y * 2;
             
-            setVisualMapTile(gx, gy, TILE_DIRT);
-            gameState.objectGrid[x][y].object = TILE_DIRT;
-            gameState.objectGrid[x][y].state = STATE_STATIONARY;
+            /* Skip player tile  */
+            if (c != '@') {
+                setVisualMapTile(gx, gy, tileType);
+                gameState.objectGrid[x][y].object = tileType;
+                gameState.objectGrid[x][y].state = STATE_STATIONARY;
+            } else {
+                setVisualMapTile(gx, gy, TILE_DIRT);
+                gameState.objectGrid[x][y].object = TILE_DIRT;
+                gameState.objectGrid[x][y].state = STATE_STATIONARY;
+            }
         }
     }
     
-    // Place objects
-    if (width >= 5 && height >= 5) {
-        u8 bx1 = 3, by1 = 2;
-        setVisualMapTile(bx1 * 2, by1 * 2, TILE_BOULDER);
-        gameState.objectGrid[bx1][by1].object = TILE_BOULDER;
-        gameState.objectGrid[bx1][by1].state = STATE_STATIONARY;
-
-        bx1 = 5, by1 = 2;
-        setVisualMapTile(bx1 * 2, by1 * 2, TILE_BOULDER);
-        gameState.objectGrid[bx1][by1].object = TILE_BOULDER;
-        gameState.objectGrid[bx1][by1].state = STATE_STATIONARY;
-        
-        bx1 = 4, by1 = 3;
-        setVisualMapTile(bx1 * 2, by1 * 2, TILE_DIAMOND);
-        gameState.objectGrid[bx1][by1].object = TILE_DIAMOND;
-        gameState.objectGrid[bx1][by1].state = STATE_STATIONARY;
-        
-        bx1 = 6, by1 = 3;
-        setVisualMapTile(bx1 * 2, by1 * 2, TILE_DIAMOND);
-        gameState.objectGrid[bx1][by1].object = TILE_DIAMOND;
-        gameState.objectGrid[bx1][by1].state = STATE_STATIONARY;
-    }
-    
-    // Place player 
+    /* Place player */
     setVisualMapTile(gameState.playerX * 2, gameState.playerY * 2, TILE_PLAYER);
-
     gameState.objectGrid[gameState.playerX][gameState.playerY].object = TILE_PLAYER;
     gameState.objectGrid[gameState.playerX][gameState.playerY].state = STATE_STATIONARY;
 
-    // Save original state
+    /* Place exit */
+    setVisualMapTile(board.exitX * 2, board.exitY * 2, TILE_EXIT);
+    gameState.objectGrid[board.exitX][board.exitY].object = TILE_EXIT;
+    gameState.objectGrid[board.exitX][board.exitY].state = STATE_STATIONARY;
+
     memcpy(&gameState.original, &gameState.objectGrid, sizeof(gameState.objectGrid));
     gameSaveState();
 }

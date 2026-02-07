@@ -7,6 +7,7 @@ static const TileMapping tileLookup[TILE_MAX] = {
     [TILE_EMPTY] = { 4, 5, TILE_STRIDE + 4, TILE_STRIDE + 5, 1},
     [TILE_BOULDER] = {6, 7, TILE_STRIDE + 6, TILE_STRIDE + 7, 1},
     [TILE_DIRT] = {8, 9, TILE_STRIDE + 8, TILE_STRIDE + 9, 1},
+    [TILE_EXIT] = {18, 19, TILE_STRIDE + 18, TILE_STRIDE + 19, 1},
     [TILE_PLAYER] = {64, 65, TILE_STRIDE + 64, TILE_STRIDE + 65, 1},
     [TILE_DIAMOND] = {128, 129, TILE_STRIDE + 128, TILE_STRIDE + 129, 4},
 };
@@ -17,7 +18,7 @@ const TileMapping* getTileMapping(u8 tileIndex) {
     if (tileIndex < TILE_MAX) {
         return &tileLookup[tileIndex];
     }
-    return &tileLookup[TILE_EMPTY]; // fallback... should be steel wall
+    return &tileLookup[TILE_STEEL]; 
 }
 
 TileMapping getTileFrame(u8 tileIndex) {

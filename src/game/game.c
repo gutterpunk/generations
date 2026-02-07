@@ -20,7 +20,7 @@ u8 physicsProcessed[MAX_GRID_SIZE][MAX_GRID_SIZE];
 
 void gameInit()
 {
-    mapInit(10, 10);
+    mapInit(0); 
     gameState.physicsX = 0;
     gameState.physicsY = 0;
     gameState.physicsWaitingForPlayer = FALSE;
@@ -57,12 +57,10 @@ static bool isRounded(u8 tile, u8 state)
     if (tile == TILE_DIAMOND && state == STATE_STATIONARY) return TRUE;
     return FALSE;
 }
-
-static bool tryRoll(u8 x, u8 y, u8 tile)
+static bool tryRollLeft(u8 x, u8 y, u8 tile)
 {
     u8 w = gameState.gridWidth;
     u8 h = gameState.gridHeight;
-    
     // Try roll left
     if (x > 0 && y < h - 1) {
         u8 leftX = x - 1;
@@ -87,6 +85,13 @@ static bool tryRoll(u8 x, u8 y, u8 tile)
             return TRUE;
         }
     }
+    return FALSE;
+}
+static bool tryRollRight(u8 x, u8 y, u8 tile)
+{
+    u8 w = gameState.gridWidth;
+    u8 h = gameState.gridHeight;
+    
     
     // Try roll right
     if (x < w - 1 && y < h - 1) {
@@ -111,9 +116,28 @@ static bool tryRoll(u8 x, u8 y, u8 tile)
             return TRUE;
         }
     }
-    
     return FALSE;
 }
+static bool tryRoll(u8 x, u8 y, u8 tile, bool leftFirst)
+{
+    if (leftFirst) {
+        if (tryRollLeft(x, y, tile)) {
+            return TRUE;
+        }
+        if (tryRollRight(x, y, tile)) {
+            return TRUE;
+        }
+    } else {
+        if (tryRollRight(x, y, tile)) {
+            return TRUE;
+        }
+        if (tryRollLeft(x, y, tile)) {
+            return TRUE;
+        }
+    }    
+    return FALSE;
+}
+
 static void playerMoveOrAction(bool isPush, u8 newX, u8 newY, s8 dirX, s8 dirY) 
 {
     if (!isPush) {
@@ -184,6 +208,15 @@ static void updatePlayerPhysics()
                     redrawStage = REDRAW_STAGE_BETWEEN;
                 }
             }
+        }
+        else if (targetTile->object == TILE_DIAMOND) {
+            gameSaveState();
+            
+            setVisualMapTile(newX * 2, newY * 2, TILE_EMPTY);
+            setBetweenFramesMapTile(newX * 2, newY * 2, TILE_EMPTY);
+            playerMoveOrAction(isPush, newX, newY, gameState.playerDirectionX, gameState.playerDirectionY);
+            
+            redrawStage = REDRAW_STAGE_BETWEEN; 
         }
     }
 }
@@ -259,7 +292,7 @@ void gameUpdatePhysics()
                         redrawStage = REDRAW_STAGE_BETWEEN;
                     }
                     else if (isRounded(belowObject, belowState)) {
-                        tryRoll(x, y, tile->object);
+                        tryRoll(x, y, tile->object, tile->object == TILE_BOULDER);
                     }
                 }
                 else {
@@ -281,7 +314,7 @@ void gameUpdatePhysics()
                     }
                     else {
                         if (isRounded(belowObject, belowState)) {
-                            if (!tryRoll(x, y, tile->object)) {
+                            if (!tryRoll(x, y, tile->object, tile->object == TILE_BOULDER)) {
                                 tile->state = STATE_STATIONARY;
                             }
                         }

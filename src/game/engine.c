@@ -38,7 +38,7 @@ void engineRender()
     
    
     engineUpdateCamera();
-    engineDrawDebugOverlay();
+    //engineDrawDebugOverlay();
     
     char moveText[30];
     sprintf(moveText, "Moves: %d  ", gameState.moveCount);

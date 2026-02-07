@@ -11,6 +11,7 @@
 #define TILE_WALL 0
 #define TILE_DIRT 4
 #define TILE_BOULDER 3
+#define TILE_EXIT 18
 #define TILE_PLAYER 16
 #define TILE_DIAMOND 32
 
