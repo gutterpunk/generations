@@ -25,7 +25,7 @@ void playerHandleInput()
         restartTimer++;
         if (restartTimer >= RESTART_HOLD_TIME) {
             gameRestartMap();
-            needsRedraw = TRUE;
+            redrawStage = REDRAW_STAGE_BETWEEN;
             restartTimer = 0;
             return;
         }
@@ -52,7 +52,7 @@ void playerHandleInput()
     
     if (pressed & BUTTON_B) {
         gameRewindState();
-        needsRedraw = TRUE;
+        redrawStage = REDRAW_STAGE_BETWEEN;
         return;
     }
     

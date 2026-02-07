@@ -14,6 +14,11 @@
 #define REPEAT_RATE 2
 #define RESTART_HOLD_TIME 60
 
+#define REDRAW_STAGE_NONE 0
+#define REDRAW_STAGE_BETWEEN 1
+#define REDRAW_STAGE_VISUAL 2
+
+
 typedef struct  {
     u8 object;
     u8 state;
@@ -36,10 +41,11 @@ typedef struct {
 
     ObjectState history[MAX_HISTORY][MAX_GRID_SIZE][MAX_GRID_SIZE];
     u16 historyIndex;
+
 } GameState;
 
 extern GameState gameState;
-extern bool needsRedraw;
+extern u8 redrawStage;
 extern u32 frameCounter;
 
 void gameInit();

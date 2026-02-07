@@ -9,11 +9,12 @@
 #include "tiles.h"
 
 
+
 // Global game state
 GameState gameState;
 GameState stateHistory[MAX_HISTORY];
 u16 historyIndex = 0;
-bool needsRedraw = TRUE;
+u8 redrawStage = REDRAW_STAGE_NONE;
 
 u8 physicsProcessed[MAX_GRID_SIZE][MAX_GRID_SIZE];
 
@@ -24,7 +25,7 @@ void gameInit()
     gameState.physicsY = 0;
     gameState.physicsWaitingForPlayer = FALSE;
     gameState.isPushAction = FALSE;
-    needsRedraw = TRUE;
+    redrawStage = REDRAW_STAGE_VISUAL;
 }
 
 static void incrementPhysicsPosition()
@@ -71,16 +72,18 @@ static bool tryRoll(u8 x, u8 y, u8 tile)
         if (leftTileType->object == TILE_EMPTY && belowLeftTileType->object == TILE_EMPTY) {
             // Clear old position
             setVisualMapTile(x * 2, y * 2, TILE_EMPTY);
+            setBetweenFramesMapTile(x * 2, y * 2, TILE_EMPTY);
             gameState.objectGrid[x][y].object = TILE_EMPTY;
             gameState.objectGrid[x][y].state = STATE_STATIONARY;
             
             // Set new position
             setVisualMapTile(leftX * 2, y * 2, tile);
+            setBetweenFramesMapTile((leftX * 2) + 1, y * 2, tile);
             leftTileType->object = tile;
             leftTileType->state = STATE_FALLING;
 
             physicsProcessed[leftX][y] = 1;
-            needsRedraw = TRUE;
+            redrawStage = REDRAW_STAGE_BETWEEN;
             return TRUE;
         }
     }
@@ -93,17 +96,18 @@ static bool tryRoll(u8 x, u8 y, u8 tile)
         ObjectState* belowRightTileType = &gameState.objectGrid[rightX][belowY];
         if (rightTileType->object == TILE_EMPTY && belowRightTileType->object == TILE_EMPTY) {
             // Clear old position
-            setVisualMapTile(x * 2, y * 2, TILE_EMPTY);
+            setBothMapTile(x * 2, y * 2, TILE_EMPTY);
             gameState.objectGrid[x][y].object = TILE_EMPTY;
             gameState.objectGrid[x][y].state = STATE_STATIONARY;
             
             // Set new position
             setVisualMapTile(rightX * 2, y * 2, tile);
+            setBetweenFramesMapTile((rightX * 2) - 1, y * 2, tile);
             rightTileType->object = tile;
             rightTileType->state = STATE_FALLING;
 
             physicsProcessed[rightX][y] = 1;
-            needsRedraw = TRUE;
+            redrawStage = REDRAW_STAGE_BETWEEN;
             return TRUE;
         }
     }
@@ -114,12 +118,13 @@ static void playerMoveOrAction(bool isPush, u8 newX, u8 newY, s8 dirX, s8 dirY)
 {
     if (!isPush) {
         // Clear old player position
-        setVisualMapTile(gameState.playerX * 2, gameState.playerY * 2, TILE_EMPTY);
+        setBothMapTile(gameState.playerX * 2, gameState.playerY * 2, TILE_EMPTY);
         gameState.objectGrid[gameState.playerX][gameState.playerY].object = TILE_EMPTY;
         gameState.objectGrid[gameState.playerX][gameState.playerY].state = STATE_STATIONARY;
         
         // Set new player position
         setVisualMapTile(newX * 2, newY * 2, TILE_PLAYER);
+        setBetweenFramesMapTile((newX * 2) - dirX, (newY * 2) - dirY, TILE_PLAYER);
         gameState.objectGrid[newX][newY].object = TILE_PLAYER;
         gameState.objectGrid[newX][newY].state = STATE_STATIONARY;
         
@@ -128,7 +133,7 @@ static void playerMoveOrAction(bool isPush, u8 newX, u8 newY, s8 dirX, s8 dirY)
         physicsProcessed[newX][newY] = 1;
     } else {
         // Clear area for push action
-        setVisualMapTile(newX * 2, newY * 2, TILE_EMPTY);
+        setBothMapTile(newX * 2, newY * 2, TILE_EMPTY);
         gameState.objectGrid[newX][newY].object = TILE_EMPTY;
         gameState.objectGrid[newX][newY].state = STATE_STATIONARY;
     }
@@ -155,7 +160,7 @@ static void updatePlayerPhysics()
             
             playerMoveOrAction(isPush, newX, newY, gameState.playerDirectionX, gameState.playerDirectionY);
             
-            needsRedraw = TRUE;
+            redrawStage = REDRAW_STAGE_BETWEEN;
         }
         else if (targetTile->object == TILE_BOULDER && gameState.playerDirectionY == 0) {
             u8 pushX = newX + gameState.playerDirectionX;
@@ -168,6 +173,7 @@ static void updatePlayerPhysics()
                     
                     // Move boulder
                     setVisualMapTile(pushX * 2, newY * 2, TILE_BOULDER);
+                    setBetweenFramesMapTile((pushX * 2) - gameState.playerDirectionX, newY * 2, TILE_BOULDER);
                     pushTile->object = TILE_BOULDER;
                     pushTile->state = STATE_STATIONARY;
                     physicsProcessed[pushX][newY] = 1;
@@ -175,7 +181,7 @@ static void updatePlayerPhysics()
                     // Player moves into boulder's old position
                     playerMoveOrAction(isPush, newX, newY, gameState.playerDirectionX, gameState.playerDirectionY);
                                                     
-                    needsRedraw = TRUE;
+                    redrawStage = REDRAW_STAGE_BETWEEN;
                 }
             }
         }
@@ -193,6 +199,7 @@ void gameUpdatePhysics()
     
     if (gameState.physicsX == 0 && gameState.physicsY == 0) {
         memset(physicsProcessed, 0, MAX_GRID_SIZE * MAX_GRID_SIZE);
+        memcpy(&gameState.betweenFramesGrid, &gameState.visualGrid, MAX_GRID_SIZE * 2 * MAX_GRID_SIZE * 2);
     }
     
     u8 startX = gameState.physicsX;
@@ -207,6 +214,7 @@ void gameUpdatePhysics()
                 gameState.playerX = x;
                 gameState.playerY = y;
                 if (gameState.playerDirectionX != 0 || gameState.playerDirectionY != 0) {
+                    memcpy(&gameState.betweenFramesGrid, &gameState.visualGrid, MAX_GRID_SIZE * 2 * MAX_GRID_SIZE * 2);
                     updatePlayerPhysics();
                     gameState.playerDirectionX = 0;
                     gameState.playerDirectionY = 0;
@@ -237,17 +245,18 @@ void gameUpdatePhysics()
                         u8 tileType = tile->object;
                         
                         // Clear old position
-                        setVisualMapTile(x * 2, y * 2, TILE_EMPTY);
+                        setBothMapTile(x * 2, y * 2, TILE_EMPTY);
                         tile->object = TILE_EMPTY;
                         tile->state = STATE_STATIONARY;
                         
                         // Set new position
                         u8 newY = y + 1;
                         setVisualMapTile(x * 2, newY * 2, tileType);
+                        setBetweenFramesMapTile(x * 2, (newY * 2) - 1, tileType);
                         below->object = tileType;
                         below->state = STATE_FALLING;
                         physicsProcessed[x][newY] = 1;
-                        needsRedraw = TRUE;
+                        redrawStage = REDRAW_STAGE_BETWEEN;
                     }
                     else if (isRounded(belowObject, belowState)) {
                         tryRoll(x, y, tile->object);
@@ -257,17 +266,18 @@ void gameUpdatePhysics()
                     if (belowObject == TILE_EMPTY) {
                         // Clear old position
                         u8 tileType = tile->object;
-                        setVisualMapTile(x * 2, y * 2, TILE_EMPTY);
+                        setBothMapTile(x * 2, y * 2, TILE_EMPTY);
                         tile->object = TILE_EMPTY;
                         tile->state = STATE_STATIONARY;
                         
                         // Set new position
                         u8 newY = y + 1;
                         setVisualMapTile(x * 2, newY * 2, tileType);
+                        setBetweenFramesMapTile(x * 2, (newY * 2) - 1, tileType);
                         below->object = tileType;
                         below->state = STATE_FALLING;
                         physicsProcessed[x][newY] = 1;
-                        needsRedraw = TRUE;
+                        redrawStage = REDRAW_STAGE_BETWEEN;
                     }
                     else {
                         if (isRounded(belowObject, belowState)) {
@@ -314,7 +324,7 @@ void gameRewindState()
                 setVisualMapTile(x * 2, y * 2, gameState.objectGrid[x][y].object);
             }
         }
-        needsRedraw = TRUE;
+        redrawStage = REDRAW_STAGE_BETWEEN;
     }
 }
 
@@ -329,5 +339,5 @@ void gameRestartMap()
             setVisualMapTile(x * 2, y * 2, gameState.objectGrid[x][y].object);
         }
     }
-    needsRedraw = TRUE;
+    redrawStage = REDRAW_STAGE_BETWEEN;
 }

@@ -23,7 +23,20 @@ void engineInit()
 
 void engineRender()
 {
-    mapDrawPlayfield();
+    switch (redrawStage)
+    {
+        case REDRAW_STAGE_BETWEEN:
+            mapDrawPlayfield(TRUE);
+            redrawStage = REDRAW_STAGE_VISUAL;
+            break;
+        case REDRAW_STAGE_VISUAL:
+            mapDrawPlayfield(FALSE);
+            redrawStage = REDRAW_STAGE_NONE;
+            break;
+    }
+
+    
+   
     engineUpdateCamera();
     engineDrawDebugOverlay();
     

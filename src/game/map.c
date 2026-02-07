@@ -26,6 +26,19 @@ void setBetweenFramesMapTile(u8 x, u8 y, u8 tileIndex) {
     gameState.betweenFramesGrid[x + 1][y + 1] = mapping->bottomRight;
 }
 
+void setBothMapTile(u8 x, u8 y, u8 tileIndex) {
+    const TileMapping* mapping = getTileMapping(tileIndex);
+    gameState.betweenFramesGrid[x][y] = mapping->topLeft;
+    gameState.betweenFramesGrid[x + 1][y] = mapping->topRight;
+    gameState.betweenFramesGrid[x][y + 1] = mapping->bottomLeft;
+    gameState.betweenFramesGrid[x + 1][y + 1] = mapping->bottomRight;
+
+    gameState.visualGrid[x][y] = mapping->topLeft;
+    gameState.visualGrid[x + 1][y] = mapping->topRight;
+    gameState.visualGrid[x][y + 1] = mapping->bottomLeft;
+    gameState.visualGrid[x + 1][y + 1] = mapping->bottomRight;
+}
+
 void mapInit(u8 width, u8 height)
 {
     gameState.gridWidth = width;
@@ -86,14 +99,17 @@ void mapInit(u8 width, u8 height)
     gameSaveState();
 }
 
-void mapDrawPlayfield()
+void mapDrawPlayfield(bool inBetweenFrames)
 {
     frameCounter++;
     u8 offsetX = (64 - (gameState.gridWidth * 2)) / 2;
     u8 offsetY = (32 - (gameState.gridHeight * 2)) / 2;
     for (u8 x = 0; x < gameState.gridWidth * 2; x++) {
         for (u8 y = 0; y < gameState.gridHeight * 2; y++) {
-            u16 tileIndex = gameState.visualGrid[x][y] + TILE_USER_INDEX;
+            u16 tileIndex = inBetweenFrames ? 
+                gameState.betweenFramesGrid[x][y] + TILE_USER_INDEX :
+                gameState.visualGrid[x][y] + TILE_USER_INDEX; 
+
             VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, tileIndex), offsetX + x, offsetY + y);
         }
     }
