@@ -7,6 +7,9 @@
 #define TILES_PER_BLOCK 2
 
 extern char* fatalErrorString;
+extern u16 basePalette[16];
+extern u16 darkenedPalette[16];
+extern u16 lightenedPalette[16];
 
 void engineInit();
 void engineRender();

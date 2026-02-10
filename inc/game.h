@@ -23,14 +23,25 @@
 #define REDRAW_STAGE_BETWEEN 1
 #define REDRAW_STAGE_VISUAL 2
 
+#define GAME_STATE_PLAYING 0
+#define GAME_STATE_PAUSED 1
+#define GAME_STATE_SETTINGS 2
 
 typedef struct  {
     u8 object;
     u8 state;
+    u8 direction;
 } ObjectState;
 
 typedef struct {
     u8 gridWidth, gridHeight;
+    u8 gameState;
+    u8 pauseMenuSelection;
+    u8 settingsMenuSelection;
+    u8 musicVolume;
+    u8 sfxVolume;
+    u8 repeatDelay;
+    u8 repeatRate;
 
     ObjectState original[MAX_GRID_SIZE][MAX_GRID_SIZE];
     u8 visualGrid[MAX_GRID_SIZE * 2][MAX_GRID_SIZE * 2];

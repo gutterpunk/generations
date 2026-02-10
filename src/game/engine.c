@@ -10,6 +10,9 @@
 #include "tiles.h"
 
 char* fatalErrorString = NULL;
+u16 basePalette[16];
+u16 darkenedPalette[16];
+u16 lightenedPalette[16];
 
 void engineInit()
 {
@@ -17,7 +20,28 @@ void engineInit()
     VDP_setPlaneSize(64, 32, TRUE);
     VDP_clearPlane(BG_A, TRUE);
     VDP_clearPlane(BG_B, TRUE);
-    PAL_setPalette(PAL0, bg_tilemap.palette->data, DMA);
+
+    for (u16 i = 0; i < 16; i++) {
+        u16 color = bg_tilemap.palette->data[i];
+        basePalette[i] = color;
+        
+        u16 r = ((color >> 1) & 0x7) >> 1;
+        u16 g = ((color >> 5) & 0x7) >> 1;
+        u16 b = ((color >> 9) & 0x7) >> 1;
+        darkenedPalette[i] = (b << 9) | (g << 5) | (r << 1);
+        
+        u16 rL = ((color >> 1) & 0x7) + ((15 - ((color >> 1) & 0x7)) * 3 / 4);
+        u16 gL = ((color >> 5) & 0x7) + ((15 - ((color >> 5) & 0x7)) * 3 / 4);
+        u16 bL = ((color >> 9) & 0x7) + ((15 - ((color >> 9) & 0x7)) * 3 / 4);
+        if (rL > 15) rL = 15;
+        if (gL > 15) gL = 15;
+        if (bL > 15) bL = 15;
+        lightenedPalette[i] = (bL << 9) | (gL << 5) | (rL << 1);
+    }
+
+    PAL_setPalette(PAL0, basePalette, DMA);
+    PAL_setPalette(PAL1, basePalette, DMA);
+
     VDP_loadTileSet(bg_tilemap.tileset, TILE_USER_INDEX, DMA);
     PAL_setColor(63, RGB24_TO_VDPCOLOR(0xFFFFFF));
     JOY_init();

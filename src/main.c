@@ -18,9 +18,11 @@ int main()
     {
         JOY_update();
         playerHandleInput();
-        gameUpdatePhysics();
         
-        engineRender();
+        if (gameState.gameState == GAME_STATE_PLAYING) {
+            gameUpdatePhysics();
+            engineRender();
+        }
         
         SYS_doVBlankProcess();
     }

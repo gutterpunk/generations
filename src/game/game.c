@@ -24,8 +24,14 @@ void gameInit()
     gameState.physicsX = 0;
     gameState.physicsY = 0;
     gameState.physicsWaitingForPlayer = FALSE;
-    gameState.isPushAction = FALSE;
-    redrawStage = REDRAW_STAGE_VISUAL;
+    gameState.isPushAction = FALSE;    gameState.gameState = GAME_STATE_PLAYING;
+    gameState.pauseMenuSelection = 0;
+    gameState.settingsMenuSelection = 0;
+    gameState.musicVolume = 5;
+    gameState.sfxVolume = 5;
+    gameState.repeatDelay = INITIAL_REPEAT_DELAY;
+    gameState.repeatRate = REPEAT_RATE;
+
 }
 
 static void incrementPhysicsPosition()
@@ -301,7 +307,7 @@ static void explodeAt(u8 x, u8 y, u8 w, u8 h)
 }
 static void handleFirefly(ObjectState* tile, u8 x, u8 y, u8 w, u8 h)
 {
-    u8 dir = tile->state;
+    u8 dir = tile->direction;
     s8 dx[] = {-1, 0, 1, 0};
     s8 dy[] = {0, -1, 0, 1};
     
@@ -335,7 +341,7 @@ static void handleFirefly(ObjectState* tile, u8 x, u8 y, u8 w, u8 h)
             setVisualMapTile(leftX * 2, leftY * 2, tileType);
             setBetweenFramesMapTile((leftX * 2) - dx[leftDir], (leftY * 2) - dy[leftDir], tileType);
             leftTile->object = tileType;
-            leftTile->state = leftDir;
+            leftTile->direction = leftDir;
             physicsProcessed[leftX][leftY] = 1;
             redrawStage = REDRAW_STAGE_BETWEEN;
             return;
@@ -358,7 +364,7 @@ static void handleFirefly(ObjectState* tile, u8 x, u8 y, u8 w, u8 h)
             setVisualMapTile(fwdX * 2, fwdY * 2, tileType);
             setBetweenFramesMapTile((fwdX * 2) - dx[dir], (fwdY * 2) - dy[dir], tileType);
             fwdTile->object = tileType;
-            fwdTile->state = dir;
+            fwdTile->direction = dir;
             physicsProcessed[fwdX][fwdY] = 1;
             redrawStage = REDRAW_STAGE_BETWEEN;
             return;
@@ -366,7 +372,7 @@ static void handleFirefly(ObjectState* tile, u8 x, u8 y, u8 w, u8 h)
     }
     
     u8 rightDir = (dir + 1) % 4;
-    tile->state = rightDir;
+    tile->direction = rightDir;
 }
 
 void gameUpdatePhysics()

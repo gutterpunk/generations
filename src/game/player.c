@@ -3,8 +3,126 @@
  * Handles player input and movement
  **/
 #include <genesis.h>
+#include "engine.h"
 #include "player.h"
 #include "game.h"
+
+void drawPauseMenu() {
+    VDP_clearPlane(BG_B, FALSE);
+    VDP_setTextPlane(BG_B);
+
+    VDP_drawText("PAUSED", 15, 10);
+    VDP_drawText(gameState.pauseMenuSelection == 0 ? "> Resume" : "  Resume", 14, 12);
+    VDP_drawText(gameState.pauseMenuSelection == 1 ? "> Settings" : "  Settings", 14, 13);
+    VDP_drawText(gameState.pauseMenuSelection == 2 ? "> Restart" : "  Restart", 14, 14);
+    VDP_drawText(gameState.pauseMenuSelection == 3 ? "> Quit" : "  Quit", 14, 15);
+}
+
+void drawSettingsMenu() {
+    char buffer[32];
+    VDP_clearPlane(BG_B, FALSE);
+    VDP_setTextPlane(BG_B);
+    
+    VDP_drawText("SETTINGS", 14, 10);
+    
+    sprintf(buffer, "%c Music: %d", gameState.settingsMenuSelection == 0 ? '>' : ' ', gameState.musicVolume);
+    VDP_drawText(buffer, 12, 12);
+    
+    sprintf(buffer, "%c SFX: %d", gameState.settingsMenuSelection == 1 ? '>' : ' ', gameState.sfxVolume);
+    VDP_drawText(buffer, 12, 13);
+        
+    sprintf(buffer, "%c Repeat Delay: %d", gameState.settingsMenuSelection == 2 ? '>' : ' ', gameState.repeatDelay);
+    VDP_drawText(buffer, 12, 14);
+
+    sprintf(buffer, "%c Repeat Rate: %d", gameState.settingsMenuSelection == 3 ? '>' : ' ', gameState.repeatRate);
+    VDP_drawText(buffer, 12, 15);
+
+    VDP_drawText(gameState.settingsMenuSelection == 4 ? "> Back" : "  Back", 12, 17);
+}
+
+void handlePauseMenuSelect() {
+    switch (gameState.pauseMenuSelection) {
+        case 0:
+            unpause();
+            break;
+        case 1:
+            gameState.gameState = GAME_STATE_SETTINGS;
+            gameState.settingsMenuSelection = 0;
+            drawSettingsMenu();
+            break;
+        case 2:
+            gameRestartMap();
+            unpause();
+            redrawStage = REDRAW_STAGE_BETWEEN;
+            break;
+        case 3:
+            // quit to main menu - not implemented
+            break;
+    }
+}
+
+void handleSettingsInput(u16 joy, u16 prevJoy) {
+    u16 pressed = joy & ~prevJoy;
+    
+    if (pressed & BUTTON_UP) {
+        if (gameState.settingsMenuSelection > 0) gameState.settingsMenuSelection--;
+        drawSettingsMenu();
+    }
+    if (pressed & BUTTON_DOWN) {
+        if (gameState.settingsMenuSelection < 4) gameState.settingsMenuSelection++;
+        drawSettingsMenu();
+    }
+    if (pressed & BUTTON_LEFT) {
+        if (gameState.settingsMenuSelection == 0 && gameState.musicVolume > 0) {
+            gameState.musicVolume--;
+            drawSettingsMenu();
+        }
+        if (gameState.settingsMenuSelection == 1 && gameState.sfxVolume > 0) {
+            gameState.sfxVolume--;
+            drawSettingsMenu();
+        }
+        if (gameState.settingsMenuSelection == 2 && gameState.repeatDelay > 0) {
+            gameState.repeatDelay = (gameState.repeatDelay > 0) ? gameState.repeatDelay - 1 : 0;
+            drawSettingsMenu();
+        }
+        if (gameState.settingsMenuSelection == 3 && gameState.repeatRate > 0) {
+            gameState.repeatRate = (gameState.repeatRate > 0) ? gameState.repeatRate - 1 : 0;
+            drawSettingsMenu();
+        }
+
+    }
+    if (pressed & BUTTON_RIGHT) {
+        if (gameState.settingsMenuSelection == 0 && gameState.musicVolume < 10) {
+            gameState.musicVolume++;
+            drawSettingsMenu();
+        }
+        if (gameState.settingsMenuSelection == 1 && gameState.sfxVolume < 10) {
+            gameState.sfxVolume++;
+            drawSettingsMenu();
+        }
+        if (gameState.settingsMenuSelection == 2 && gameState.repeatDelay < 60) {
+            gameState.repeatDelay = (gameState.repeatDelay < 60) ? gameState.repeatDelay + 1 : 60;
+            drawSettingsMenu();
+        }
+        if (gameState.settingsMenuSelection == 3 && gameState.repeatRate < 12) {
+            gameState.repeatRate = (gameState.repeatRate < 12) ? gameState.repeatRate + 1 : 12;
+            drawSettingsMenu();
+        }
+    }
+    if (pressed & (BUTTON_A | BUTTON_B | BUTTON_START)) {
+        if (gameState.settingsMenuSelection == 3 || (pressed & (BUTTON_B | BUTTON_START))) {
+            gameState.gameState = GAME_STATE_PAUSED;
+            drawPauseMenu();
+        }
+    }
+}
+
+void unpause() {
+    gameState.gameState = GAME_STATE_PLAYING;
+    VDP_clearPlane(BG_B, TRUE);
+    VDP_setTextPlane(BG_A);
+    PAL_setPalette(PAL0, basePalette, DMA);
+}
 
 void playerHandleInput()
 {
@@ -15,6 +133,33 @@ void playerHandleInput()
     u16 joy = JOY_readJoypad(JOY_1);
     u16 pressed = joy & ~prevJoy;
     u16 released = prevJoy & ~joy;
+    
+    if (gameState.gameState == GAME_STATE_PAUSED) {
+        if (pressed & BUTTON_START) {
+            unpause();
+            
+        }
+        if (pressed & BUTTON_UP) {
+            if (gameState.pauseMenuSelection > 0) gameState.pauseMenuSelection--;
+            drawPauseMenu();
+        }
+        if (pressed & BUTTON_DOWN) {
+            if (gameState.pauseMenuSelection < 3) gameState.pauseMenuSelection++;
+            drawPauseMenu();
+        }
+        if (pressed & BUTTON_A) {
+            handlePauseMenuSelect();
+        }
+        prevJoy = joy;
+        return;
+    }
+    
+    if (gameState.gameState == GAME_STATE_SETTINGS) {
+        handleSettingsInput(joy, prevJoy);
+        prevJoy = joy;
+        return;
+    }
+    
     prevJoy = joy;
     
     if (released) {
@@ -40,10 +185,19 @@ void playerHandleInput()
     }
     else if (joy & (BUTTON_UP | BUTTON_DOWN | BUTTON_LEFT | BUTTON_RIGHT)) {
         repeatTimer++;
-        if (repeatTimer >= INITIAL_REPEAT_DELAY && 
-            (repeatTimer - INITIAL_REPEAT_DELAY) % REPEAT_RATE == 0) {
+        if (repeatTimer >= gameState.repeatDelay && 
+            (repeatTimer - gameState.repeatDelay) % gameState.repeatRate == 0) {
             shouldProcess = TRUE;
         }
+    }
+    
+    if (pressed & BUTTON_START) {
+        gameState.gameState = GAME_STATE_PAUSED;
+        gameState.pauseMenuSelection = 0;
+        PAL_setPalette(PAL0, darkenedPalette, DMA);
+        VDP_setTextPalette(PAL1);
+        drawPauseMenu();
+        return;
     }
     
     if (!shouldProcess) {
