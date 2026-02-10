@@ -10,6 +10,7 @@ static const TileMapping tileLookup[TILE_MAX] = {
     [TILE_EXIT] = {18, 19, TILE_STRIDE + 18, TILE_STRIDE + 19, 1},
     [TILE_PLAYER] = {64, 65, TILE_STRIDE + 64, TILE_STRIDE + 65, 1},
     [TILE_DIAMOND] = {128, 129, TILE_STRIDE + 128, TILE_STRIDE + 129, 4},
+    [TILE_FIREFLY] = {11, 12, TILE_STRIDE + 11, TILE_STRIDE + 12, 4},
 };
 
 const u8 tileMappingCount = sizeof(tileLookup) / sizeof(TileMapping);

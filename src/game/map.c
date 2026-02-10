@@ -4,12 +4,15 @@
  **/
 #include <genesis.h>
 #include "map.h"
+#include "engine.h"
 #include "game.h"
 #include "resources.h"
 #include "tiles.h"
 #include "gdr_reader.h"
 
 u32 frameCounter;
+
+u16 vramState[MAX_GRID_SIZE*2][MAX_GRID_SIZE*2];
 
 void setVisualMapTile(u8 x, u8 y, u8 tileIndex) {
     const TileMapping* mapping = getTileMapping(tileIndex);
@@ -50,6 +53,7 @@ static u8 mapGDRCharToTile(char c) {
         case 'd': return TILE_DIAMOND;
         case '%': return TILE_STEEL;
         case 'X': return TILE_EXIT;
+        case '<': return TILE_FIREFLY;
         default: return TILE_EMPTY;
     }
 }
@@ -61,7 +65,9 @@ void mapInit(u16 boardIndex)
     GDRSolution solution;
     
     /* Load board from GDR data - crash if fails */
-    GDR_LoadBoardData(gdr_data, boardIndex, &board, &solution);
+    if (!GDR_LoadBoardData(gdr_data, boardIndex, &board, &solution)) {
+        fatalError("Failed to load board data");
+    }
     
     gameState.gridWidth = board.width;
     gameState.gridHeight = board.height;
@@ -113,17 +119,23 @@ void mapInit(u16 boardIndex)
 
 void mapDrawPlayfield(bool inBetweenFrames)
 {
+    u8 (*sourceGrid)[MAX_GRID_SIZE * 2] = inBetweenFrames 
+        ? gameState.betweenFramesGrid 
+        : gameState.visualGrid;
     frameCounter++;
     u8 offsetX = (64 - (gameState.gridWidth * 2)) / 2;
     u8 offsetY = (32 - (gameState.gridHeight * 2)) / 2;
     for (u8 x = 0; x < gameState.gridWidth * 2; x++) {
         for (u8 y = 0; y < gameState.gridHeight * 2; y++) {
-            u16 tileIndex = inBetweenFrames ? 
-                gameState.betweenFramesGrid[x][y] + TILE_USER_INDEX :
-                gameState.visualGrid[x][y] + TILE_USER_INDEX; 
+            u16 tileIndex = sourceGrid[x][y] + TILE_USER_INDEX; 
+            if (vramState[x][y] != tileIndex) {
 
-            VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, tileIndex), offsetX + x, offsetY + y);
+                vramState[x][y] = tileIndex;
+                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, tileIndex), offsetX + x, offsetY + y);
+            }
         }
     }
 }
+
+
 

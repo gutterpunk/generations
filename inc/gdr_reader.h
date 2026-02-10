@@ -36,11 +36,7 @@ typedef struct {
     GDRFold folds[GDR_MAX_FOLDS];
 } GDRSolution;
 
-/* Read board at specific index (0-based) from binary resource data */
-bool GDR_LoadBoardData(const u8* gdrData, u16 boardIndex, 
-                         GDRBoard* board, GDRSolution* solution);
-
-/* Get total board count from binary resource data */
+bool GDR_LoadBoardData(const u8* gdrData, u16 boardIndex, GDRBoard* board, GDRSolution* solution);
 u16 GDR_GetBoardCount(const u8* gdrData);
 
-#endif // GDR_SIMPLE_H
+#endif

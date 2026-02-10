@@ -9,6 +9,8 @@
 #include "map.h"
 #include "tiles.h"
 
+char* fatalErrorString = NULL;
+
 void engineInit()
 {
     VDP_setScreenWidth320();
@@ -21,6 +23,19 @@ void engineInit()
     JOY_init();
 }
 
+void fatalError(const char* message) {
+    VDP_clearPlane(BG_A, TRUE);
+    VDP_drawText("FATAL ERROR:", 10, 10);
+    VDP_drawText(message, 10, 12);
+    if (fatalErrorString) {
+        VDP_drawText(fatalErrorString, 10, 13);
+    }
+    VDP_drawText("System Halted", 10, 15);
+    
+    while(1) {
+        SYS_doVBlankProcess();
+    }
+}
 void engineRender()
 {
     switch (redrawStage)
@@ -39,25 +54,6 @@ void engineRender()
    
     engineUpdateCamera();
     //engineDrawDebugOverlay();
-    
-    char moveText[30];
-    sprintf(moveText, "Moves: %d  ", gameState.moveCount);
-    VDP_drawTextBG(BG_B, moveText, 1, 1);
-    
-    sprintf(moveText, "History: %d/%d  ", gameState.historyIndex, MAX_HISTORY);
-    VDP_drawTextBG(BG_B, moveText, 1, 2);
-
-    sprintf(moveText, "Physics: %d,%d  ", gameState.physicsX, gameState.physicsY);
-    VDP_drawTextBG(BG_B, moveText, 1, 3);
-
-    sprintf(moveText, "Player: %d,%d ", gameState.playerX, gameState.playerY);
-    VDP_drawTextBG(BG_B, moveText, 1, 4);
-
-    sprintf(moveText, "Waiting: %s  ", gameState.physicsWaitingForPlayer ? "Yes" : "No");
-    VDP_drawTextBG(BG_B, moveText, 1, 5);
-
-    sprintf(moveText, "Push: %s  ", gameState.isPushAction ? "Yes" : "No");
-    VDP_drawTextBG(BG_B, moveText, 1, 6);
 }
 
 void engineUpdateCamera()

@@ -10,8 +10,13 @@
 #define STATE_SCANNED 1
 #define STATE_FALLING 2
 
-#define INITIAL_REPEAT_DELAY 8
-#define REPEAT_RATE 2
+#define DIR_LEFT 0
+#define DIR_UP 1
+#define DIR_RIGHT 2
+#define DIR_DOWN 3
+
+#define INITIAL_REPEAT_DELAY 16
+#define REPEAT_RATE 4
 #define RESTART_HOLD_TIME 60
 
 #define REDRAW_STAGE_NONE 0

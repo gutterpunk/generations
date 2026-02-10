@@ -15,7 +15,10 @@
 #define TILE_PLAYER 16
 #define TILE_DIAMOND 32
 
-#define TILE_MAX 33
+#define TILE_FIREFLY 5  // amoeba
+#define TILE_BUTTERFLY 43 // steel amoeba
+
+#define TILE_MAX 44
 
 typedef struct {
     u16 topLeft;

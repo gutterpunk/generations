@@ -3,6 +3,7 @@
 */
 
 #include "gdr_reader.h"
+#include "engine.h"
 #include <string.h>
 
 static u8 gdrBuffer[512]; /* RLE buffer */
@@ -81,17 +82,22 @@ bool GDR_LoadBoardData(const u8* gdrData, u16 boardIndex, GDRBoard* board, GDRSo
     u8 parByte, scoreByte;
     
     if (!gdrData) {
+        fatalErrorString = "GDR data pointer is NULL";
         return FALSE;
     }
     
     /* magic */
     if (ptr[0] != 'G' || ptr[1] != 'D' || ptr[2] != '1') {
+        fatalErrorString = "Invalid GDR magic header";
         return FALSE;
     }
     
     ptr += 3;
     totalBoards = readUInt16(&ptr);
     if (boardIndex >= totalBoards) {
+        char buffer[64];
+        sprintf(buffer, "Board index out of range %d/%d", boardIndex, totalBoards);
+        fatalErrorString = buffer;
         return FALSE;
     }
     
@@ -161,6 +167,7 @@ bool GDR_LoadBoardData(const u8* gdrData, u16 boardIndex, GDRBoard* board, GDRSo
     
     /* Read board data */
     if (decompressRLE(&ptr, board->data, GDR_MAX_DATA) == 0) {
+        fatalErrorString = "Failed to decompress GDR board data";
         return FALSE;
     }
     
