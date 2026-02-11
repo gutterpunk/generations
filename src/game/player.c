@@ -17,7 +17,12 @@ void drawPauseMenu() {
     VDP_drawText(gameState.pauseMenuSelection == 2 ? "> Restart" : "  Restart", 14, 14);
     VDP_drawText(gameState.pauseMenuSelection == 3 ? "> Quit" : "  Quit", 14, 15);
 }
-
+void unpause() {
+    gameState.gameState = GAME_STATE_PLAYING;
+    VDP_clearPlane(BG_B, TRUE);
+    VDP_setTextPlane(BG_A);
+    PAL_setPalette(PAL0, basePalette, DMA);
+}
 void drawSettingsMenu() {
     char buffer[32];
     VDP_clearPlane(BG_B, FALSE);
@@ -53,7 +58,7 @@ void handlePauseMenuSelect() {
         case 2:
             gameRestartMap();
             unpause();
-            redrawStage = REDRAW_STAGE_BETWEEN;
+            redrawStage = REDRAW_STAGE_VISUAL;
             break;
         case 3:
             // quit to main menu - not implemented
@@ -117,12 +122,7 @@ void handleSettingsInput(u16 joy, u16 prevJoy) {
     }
 }
 
-void unpause() {
-    gameState.gameState = GAME_STATE_PLAYING;
-    VDP_clearPlane(BG_B, TRUE);
-    VDP_setTextPlane(BG_A);
-    PAL_setPalette(PAL0, basePalette, DMA);
-}
+
 
 void playerHandleInput()
 {

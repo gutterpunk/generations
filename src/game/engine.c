@@ -12,7 +12,6 @@
 char* fatalErrorString = NULL;
 u16 basePalette[16];
 u16 darkenedPalette[16];
-u16 lightenedPalette[16];
 
 void engineInit()
 {
@@ -24,19 +23,11 @@ void engineInit()
     for (u16 i = 0; i < 16; i++) {
         u16 color = bg_tilemap.palette->data[i];
         basePalette[i] = color;
-        
+
         u16 r = ((color >> 1) & 0x7) >> 1;
         u16 g = ((color >> 5) & 0x7) >> 1;
         u16 b = ((color >> 9) & 0x7) >> 1;
         darkenedPalette[i] = (b << 9) | (g << 5) | (r << 1);
-        
-        u16 rL = ((color >> 1) & 0x7) + ((15 - ((color >> 1) & 0x7)) * 3 / 4);
-        u16 gL = ((color >> 5) & 0x7) + ((15 - ((color >> 5) & 0x7)) * 3 / 4);
-        u16 bL = ((color >> 9) & 0x7) + ((15 - ((color >> 9) & 0x7)) * 3 / 4);
-        if (rL > 15) rL = 15;
-        if (gL > 15) gL = 15;
-        if (bL > 15) bL = 15;
-        lightenedPalette[i] = (bL << 9) | (gL << 5) | (rL << 1);
     }
 
     PAL_setPalette(PAL0, basePalette, DMA);
@@ -120,37 +111,3 @@ void engineUpdateCamera()
     VDP_setVerticalScroll(BG_B, 0);
 }
 
-void engineDrawDebugOverlay()
-{
-    extern u8 physicsProcessed[MAX_GRID_SIZE][MAX_GRID_SIZE];
-    
-    u8 offsetX = (64 - (gameState.gridWidth * 2)) / 2;
-    u8 offsetY = (32 - (gameState.gridHeight * 2)) / 2;
-    offsetY -= 2;
-    
-    for (u8 x = 0; x < gameState.gridWidth; x++) {
-        for (u8 y = 0; y < gameState.gridHeight; y++) {
-            ObjectState* objState = &gameState.objectGrid[x][y];
-            u8 tile = objState->object;
-            u8 state = objState->state;
-            u8 processed = physicsProcessed[x][y];
-            
-            u8 screenX = offsetX + (x * 2);
-            u8 screenY = offsetY + (y * 2);
-            
-            if (tile == TILE_BOULDER || tile == TILE_DIAMOND) {
-                char stateChar[2];
-                stateChar[0] = (state == STATE_FALLING) ? 'F' : 'S';
-                stateChar[1] = '\0';
-                VDP_drawTextBG(BG_B, stateChar, screenX, screenY);
-                
-                char procChar[2];
-                procChar[0] = processed ? 'X' : 'O';
-                procChar[1] = '\0';
-                VDP_drawTextBG(BG_B, procChar, screenX + 1, screenY);
-            }
-            else                
-                VDP_drawTextBG(BG_B, "  ", screenX, screenY);
-        }
-    }
-}

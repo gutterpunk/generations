@@ -10,13 +10,8 @@
 
 
 
-// Global game state
 GameState gameState;
-GameState stateHistory[MAX_HISTORY];
-u16 historyIndex = 0;
 u8 redrawStage = REDRAW_STAGE_NONE;
-
-u8 physicsProcessed[MAX_GRID_SIZE][MAX_GRID_SIZE];
 
 void gameInit()
 {
@@ -31,7 +26,7 @@ void gameInit()
     gameState.sfxVolume = 5;
     gameState.repeatDelay = INITIAL_REPEAT_DELAY;
     gameState.repeatRate = REPEAT_RATE;
-
+    redrawStage = REDRAW_STAGE_VISUAL;
 }
 
 static void incrementPhysicsPosition()
@@ -77,15 +72,14 @@ static bool tryRollLeft(u8 x, u8 y, u8 tile)
             setVisualMapTile(x * 2, y * 2, TILE_EMPTY);
             setBetweenFramesMapTile(x * 2, y * 2, TILE_EMPTY);
             gameState.objectGrid[x][y].object = TILE_EMPTY;
-            gameState.objectGrid[x][y].state = STATE_STATIONARY;
+            SET_STATE(gameState.objectGrid[x][y], STATE_STATIONARY);
             
             // Set new position
             setVisualMapTile(leftX * 2, y * 2, tile);
             setBetweenFramesMapTile((leftX * 2) + 1, y * 2, tile);
             leftTileType->object = tile;
-            leftTileType->state = STATE_FALLING;
-
-            physicsProcessed[leftX][y] = 1;
+            SET_STATE(*leftTileType, STATE_FALLING);
+            SET_SCANNED(*leftTileType);
             redrawStage = REDRAW_STAGE_BETWEEN;
             return TRUE;
         }
@@ -107,15 +101,14 @@ static bool tryRollRight(u8 x, u8 y, u8 tile)
             // Clear old position
             setBothMapTile(x * 2, y * 2, TILE_EMPTY);
             gameState.objectGrid[x][y].object = TILE_EMPTY;
-            gameState.objectGrid[x][y].state = STATE_STATIONARY;
+            SET_STATE(gameState.objectGrid[x][y], STATE_STATIONARY);
             
             // Set new position
             setVisualMapTile(rightX * 2, y * 2, tile);
             setBetweenFramesMapTile((rightX * 2) - 1, y * 2, tile);
             rightTileType->object = tile;
-            rightTileType->state = STATE_FALLING;
-
-            physicsProcessed[rightX][y] = 1;
+            SET_STATE(*rightTileType, STATE_FALLING);
+            SET_SCANNED(*rightTileType);
             redrawStage = REDRAW_STAGE_BETWEEN;
             return TRUE;
         }
@@ -148,22 +141,22 @@ static void playerMoveOrAction(bool isPush, u8 newX, u8 newY, s8 dirX, s8 dirY)
         // Clear old player position
         setBothMapTile(gameState.playerX * 2, gameState.playerY * 2, TILE_EMPTY);
         gameState.objectGrid[gameState.playerX][gameState.playerY].object = TILE_EMPTY;
-        gameState.objectGrid[gameState.playerX][gameState.playerY].state = STATE_STATIONARY;
+        SET_STATE(gameState.objectGrid[gameState.playerX][gameState.playerY], STATE_STATIONARY);
         
         // Set new player position
         setVisualMapTile(newX * 2, newY * 2, TILE_PLAYER);
         setBetweenFramesMapTile((newX * 2) - dirX, (newY * 2) - dirY, TILE_PLAYER);
         gameState.objectGrid[newX][newY].object = TILE_PLAYER;
-        gameState.objectGrid[newX][newY].state = STATE_STATIONARY;
+        SET_STATE(gameState.objectGrid[newX][newY], STATE_STATIONARY);
         
         gameState.playerX = newX;
         gameState.playerY = newY;
-        physicsProcessed[newX][newY] = 1;
+        SET_SCANNED(gameState.objectGrid[newX][newY]);
     } else {
         // Clear area for push action
         setBothMapTile(newX * 2, newY * 2, TILE_EMPTY);
         gameState.objectGrid[newX][newY].object = TILE_EMPTY;
-        gameState.objectGrid[newX][newY].state = STATE_STATIONARY;
+        SET_STATE(gameState.objectGrid[newX][newY], STATE_STATIONARY);
     }
     gameState.moveCount++;
     if (gameState.physicsWaitingForPlayer) {
@@ -203,8 +196,8 @@ static void updatePlayerPhysics()
                     setVisualMapTile(pushX * 2, newY * 2, TILE_BOULDER);
                     setBetweenFramesMapTile((pushX * 2) - gameState.playerDirectionX, newY * 2, TILE_BOULDER);
                     pushTile->object = TILE_BOULDER;
-                    pushTile->state = STATE_STATIONARY;
-                    physicsProcessed[pushX][newY] = 1;
+                    SET_STATE(*pushTile, STATE_STATIONARY);
+                    SET_SCANNED(*pushTile);
                     
                     // Player moves into boulder's old position
                     playerMoveOrAction(isPush, newX, newY, gameState.playerDirectionX, gameState.playerDirectionY);
@@ -234,10 +227,10 @@ void handleRollingObjects(ObjectState* tile, u8 x, u8 y, u8 w, u8 h)
     if (y < h - 1) {
         below = &gameState.objectGrid[x][y + 1];
         belowObject = below->object;
-        belowState = below->state;
+        belowState = GET_STATE(*below);
     }
 
-    if (tile->state == STATE_STATIONARY) {
+    if (GET_STATE(*tile) == STATE_STATIONARY) {
         if (belowObject == TILE_EMPTY) {
             // Save tile type before clearing
             u8 tileType = tile->object;
@@ -245,15 +238,15 @@ void handleRollingObjects(ObjectState* tile, u8 x, u8 y, u8 w, u8 h)
             // Clear old position
             setBothMapTile(x * 2, y * 2, TILE_EMPTY);
             tile->object = TILE_EMPTY;
-            tile->state = STATE_STATIONARY;
+            SET_STATE(*tile, STATE_STATIONARY);
             
             // Set new position
             u8 newY = y + 1;
             setVisualMapTile(x * 2, newY * 2, tileType);
             setBetweenFramesMapTile(x * 2, (newY * 2) - 1, tileType);
             below->object = tileType;
-            below->state = STATE_FALLING;
-            physicsProcessed[x][newY] = 1;
+            SET_STATE(*below, STATE_FALLING);
+            SET_SCANNED(*below);
             redrawStage = REDRAW_STAGE_BETWEEN;
         }
         else if (isRounded(belowObject, belowState)) {
@@ -266,25 +259,25 @@ void handleRollingObjects(ObjectState* tile, u8 x, u8 y, u8 w, u8 h)
             u8 tileType = tile->object;
             setBothMapTile(x * 2, y * 2, TILE_EMPTY);
             tile->object = TILE_EMPTY;
-            tile->state = STATE_STATIONARY;
+            SET_STATE(*tile, STATE_STATIONARY);
             
             // Set new position
             u8 newY = y + 1;
             setVisualMapTile(x * 2, newY * 2, tileType);
             setBetweenFramesMapTile(x * 2, (newY * 2) - 1, tileType);
             below->object = tileType;
-            below->state = STATE_FALLING;
-            physicsProcessed[x][newY] = 1;
+            SET_STATE(*below, STATE_FALLING);
+            SET_SCANNED(*below);
             redrawStage = REDRAW_STAGE_BETWEEN;
         }
         else {
             if (isRounded(belowObject, belowState)) {
                 if (!tryRoll(x, y, tile->object, tile->object == TILE_BOULDER)) {
-                    tile->state = STATE_STATIONARY;
+                    SET_STATE(*tile, STATE_STATIONARY);
                 }
             }
             else {
-                tile->state = STATE_STATIONARY;
+                SET_STATE(*tile, STATE_STATIONARY);
             }
         }
     }
@@ -299,15 +292,15 @@ static void explodeAt(u8 x, u8 y, u8 w, u8 h)
             if (explodeX >= 0 && explodeX < w && explodeY >= 0 && explodeY < h) {
                 setBothMapTile(explodeX * 2, explodeY * 2, TILE_EMPTY);
                 gameState.objectGrid[(u8)explodeX][(u8)explodeY].object = TILE_EMPTY;
-                gameState.objectGrid[(u8)explodeX][(u8)explodeY].state = STATE_STATIONARY;
-                physicsProcessed[(u8)explodeX][(u8)explodeY] = 1;
+                SET_STATE(gameState.objectGrid[(u8)explodeX][(u8)explodeY], STATE_STATIONARY);
+                SET_SCANNED(gameState.objectGrid[(u8)explodeX][(u8)explodeY]);
             }
         }
     }
 }
 static void handleFirefly(ObjectState* tile, u8 x, u8 y, u8 w, u8 h)
 {
-    u8 dir = tile->direction;
+    u8 dir = GET_DIR(*tile);
     s8 dx[] = {-1, 0, 1, 0};
     s8 dy[] = {0, -1, 0, 1};
     
@@ -336,13 +329,13 @@ static void handleFirefly(ObjectState* tile, u8 x, u8 y, u8 w, u8 h)
             u8 tileType = tile->object;
             setBothMapTile(x * 2, y * 2, TILE_EMPTY);
             tile->object = TILE_EMPTY;
-            tile->state = STATE_STATIONARY;
+            SET_STATE(*tile, STATE_STATIONARY);
             
             setVisualMapTile(leftX * 2, leftY * 2, tileType);
             setBetweenFramesMapTile((leftX * 2) - dx[leftDir], (leftY * 2) - dy[leftDir], tileType);
             leftTile->object = tileType;
-            leftTile->direction = leftDir;
-            physicsProcessed[leftX][leftY] = 1;
+            SET_DIR(*leftTile, leftDir);
+            SET_SCANNED(*leftTile);
             redrawStage = REDRAW_STAGE_BETWEEN;
             return;
         }
@@ -359,20 +352,20 @@ static void handleFirefly(ObjectState* tile, u8 x, u8 y, u8 w, u8 h)
             u8 tileType = tile->object;
             setBothMapTile(x * 2, y * 2, TILE_EMPTY);
             tile->object = TILE_EMPTY;
-            tile->state = STATE_STATIONARY;
+            SET_STATE(*tile, STATE_STATIONARY);
             
             setVisualMapTile(fwdX * 2, fwdY * 2, tileType);
             setBetweenFramesMapTile((fwdX * 2) - dx[dir], (fwdY * 2) - dy[dir], tileType);
             fwdTile->object = tileType;
-            fwdTile->direction = dir;
-            physicsProcessed[fwdX][fwdY] = 1;
+            SET_DIR(*fwdTile, dir);
+            SET_SCANNED(*fwdTile);
             redrawStage = REDRAW_STAGE_BETWEEN;
             return;
         }
     }
     
     u8 rightDir = (dir + 1) % 4;
-    tile->direction = rightDir;
+    SET_DIR(*tile, rightDir);
 }
 
 void gameUpdatePhysics()
@@ -385,14 +378,18 @@ void gameUpdatePhysics()
     }
     
     if (gameState.physicsX == 0 && gameState.physicsY == 0) {
-        memset(physicsProcessed, 0, MAX_GRID_SIZE * MAX_GRID_SIZE);
+        for (u8 cy = 0; cy < h; cy++) {
+            for (u8 cx = 0; cx < w; cx++) {
+                CLEAR_SCANNED(gameState.objectGrid[cx][cy]);
+            }
+        }
         memcpy(&gameState.betweenFramesGrid, &gameState.visualGrid, MAX_GRID_SIZE * 2 * MAX_GRID_SIZE * 2);
     }
     
     u8 startX = gameState.physicsX;
     for (u8 y = gameState.physicsY; y < h; y++) {
         for (u8 x = startX; x < w; x++) {
-            if (physicsProcessed[x][y]) {
+            if (IS_SCANNED(gameState.objectGrid[x][y])) {
                 continue;
             }            
             ObjectState* tile = &gameState.objectGrid[x][y];

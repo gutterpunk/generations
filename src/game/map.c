@@ -32,15 +32,20 @@ void setBetweenFramesMapTile(u8 x, u8 y, u8 tileIndex) {
 
 void setBothMapTile(u8 x, u8 y, u8 tileIndex) {
     const TileMapping* mapping = getTileMapping(tileIndex);
-    gameState.betweenFramesGrid[x][y] = mapping->topLeft;
-    gameState.betweenFramesGrid[x + 1][y] = mapping->topRight;
-    gameState.betweenFramesGrid[x][y + 1] = mapping->bottomLeft;
-    gameState.betweenFramesGrid[x + 1][y + 1] = mapping->bottomRight;
+    u16 tl = mapping->topLeft;
+    u16 tr = mapping->topRight;
+    u16 bl = mapping->bottomLeft;
+    u16 br = mapping->bottomRight;
+    
+    gameState.betweenFramesGrid[x][y] = tl;
+    gameState.betweenFramesGrid[x + 1][y] = tr;
+    gameState.betweenFramesGrid[x][y + 1] = bl;
+    gameState.betweenFramesGrid[x + 1][y + 1] = br;
 
-    gameState.visualGrid[x][y] = mapping->topLeft;
-    gameState.visualGrid[x + 1][y] = mapping->topRight;
-    gameState.visualGrid[x][y + 1] = mapping->bottomLeft;
-    gameState.visualGrid[x + 1][y + 1] = mapping->bottomRight;
+    gameState.visualGrid[x][y] = tl;
+    gameState.visualGrid[x + 1][y] = tr;
+    gameState.visualGrid[x][y + 1] = bl;
+    gameState.visualGrid[x + 1][y + 1] = br;
 }
 
 /* GDR character to tile type mapping */
@@ -94,11 +99,11 @@ void mapInit(u16 boardIndex)
             if (c != '@') {
                 setVisualMapTile(gx, gy, tileType);
                 gameState.objectGrid[x][y].object = tileType;
-                gameState.objectGrid[x][y].state = STATE_STATIONARY;
+                SET_STATE(gameState.objectGrid[x][y], STATE_STATIONARY);
             } else {
                 setVisualMapTile(gx, gy, TILE_DIRT);
                 gameState.objectGrid[x][y].object = TILE_DIRT;
-                gameState.objectGrid[x][y].state = STATE_STATIONARY;
+                SET_STATE(gameState.objectGrid[x][y], STATE_STATIONARY);
             }
         }
     }
@@ -106,12 +111,12 @@ void mapInit(u16 boardIndex)
     /* Place player */
     setVisualMapTile(gameState.playerX * 2, gameState.playerY * 2, TILE_PLAYER);
     gameState.objectGrid[gameState.playerX][gameState.playerY].object = TILE_PLAYER;
-    gameState.objectGrid[gameState.playerX][gameState.playerY].state = STATE_STATIONARY;
+    SET_STATE(gameState.objectGrid[gameState.playerX][gameState.playerY], STATE_STATIONARY);
 
     /* Place exit */
     setVisualMapTile(board.exitX * 2, board.exitY * 2, TILE_EXIT);
     gameState.objectGrid[board.exitX][board.exitY].object = TILE_EXIT;
-    gameState.objectGrid[board.exitX][board.exitY].state = STATE_STATIONARY;
+    SET_STATE(gameState.objectGrid[board.exitX][board.exitY], STATE_STATIONARY);
 
     memcpy(&gameState.original, &gameState.objectGrid, sizeof(gameState.objectGrid));
     gameSaveState();

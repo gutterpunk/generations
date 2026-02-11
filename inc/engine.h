@@ -9,13 +9,11 @@
 extern char* fatalErrorString;
 extern u16 basePalette[16];
 extern u16 darkenedPalette[16];
-extern u16 lightenedPalette[16];
 
 void engineInit();
 void engineRender();
 void engineUpdateCamera();
 //void engineDrawUI();
-void engineDrawDebugOverlay();
 void fatalError(const char* message);
 
 #endif

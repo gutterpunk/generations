@@ -7,16 +7,28 @@
 #define MAX_HISTORY 50
 
 #define STATE_STATIONARY 0
-#define STATE_SCANNED 1
-#define STATE_FALLING 2
+#define STATE_FALLING 1
+#define STATE_SCANNED 2
 
 #define DIR_LEFT 0
 #define DIR_UP 1
 #define DIR_RIGHT 2
 #define DIR_DOWN 3
 
-#define INITIAL_REPEAT_DELAY 16
-#define REPEAT_RATE 4
+#define STATE_MASK 0x03
+#define DIR_SHIFT 2
+#define DIR_MASK 0x03
+
+#define GET_STATE(objState) ((objState).state & 0x01)
+#define GET_DIR(objState) (((objState).state >> DIR_SHIFT) & DIR_MASK)
+#define SET_STATE(objState, s) ((objState).state = ((objState).state & ~0x01) | (s))
+#define SET_DIR(objState, d) ((objState).state = ((objState).state & STATE_MASK) | ((d) << DIR_SHIFT))
+#define SET_SCANNED(objState) ((objState).state |= STATE_SCANNED)
+#define CLEAR_SCANNED(objState) ((objState).state &= ~STATE_SCANNED)
+#define IS_SCANNED(objState) ((objState).state & STATE_SCANNED)
+
+#define INITIAL_REPEAT_DELAY 30
+#define REPEAT_RATE 10
 #define RESTART_HOLD_TIME 60
 
 #define REDRAW_STAGE_NONE 0
@@ -30,7 +42,6 @@
 typedef struct  {
     u8 object;
     u8 state;
-    u8 direction;
 } ObjectState;
 
 typedef struct {
