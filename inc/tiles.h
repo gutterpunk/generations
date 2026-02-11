@@ -14,11 +14,13 @@
 #define TILE_EXIT 18
 #define TILE_PLAYER 16
 #define TILE_DIAMOND 32
+#define TILE_EXPLOSION 16
+#define TILE_EXPLOSION_DIAMOND 63
 
 #define TILE_FIREFLY 5  // amoeba
 #define TILE_BUTTERFLY 43 // steel amoeba
 
-#define TILE_MAX 44
+#define TILE_MAX 64
 
 typedef struct {
     u16 topLeft;

@@ -27,6 +27,15 @@
 #define CLEAR_SCANNED(objState) ((objState).state &= ~STATE_SCANNED)
 #define IS_SCANNED(objState) ((objState).state & STATE_SCANNED)
 
+#define EXPLOSION_STAGE_SHIFT 4
+#define EXPLOSION_STAGE_MASK 0x03
+#define EXPLOSION_RESULT_DIAMOND 0x01
+
+#define GET_EXPLOSION_STAGE(objState) (((objState).state >> EXPLOSION_STAGE_SHIFT) & EXPLOSION_STAGE_MASK)
+#define SET_EXPLOSION_STAGE(objState, stage) ((objState).state = ((objState).state & 0xCF) | ((stage) << EXPLOSION_STAGE_SHIFT))
+#define GET_EXPLOSION_RESULT(objState) ((objState).state & EXPLOSION_RESULT_DIAMOND)
+#define SET_EXPLOSION_RESULT(objState, isDiamond) ((objState).state = ((objState).state & ~EXPLOSION_RESULT_DIAMOND) | (isDiamond))
+
 #define INITIAL_REPEAT_DELAY 30
 #define REPEAT_RATE 10
 #define RESTART_HOLD_TIME 60
@@ -77,6 +86,7 @@ extern u32 frameCounter;
 
 void gameInit();
 void gameUpdatePhysics();
+void incrementPhysicsPosition();
 void gameSaveState();
 void gameRewindState();
 void gameRestartMap();

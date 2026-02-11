@@ -6,6 +6,37 @@
 #include "engine.h"
 #include "player.h"
 #include "game.h"
+#include "map.h"
+#include "tiles.h"
+
+extern u8 redrawStage;
+
+void playerMoveOrAction(bool isPush, u8 newX, u8 newY, s8 dirX, s8 dirY) 
+{
+    if (!isPush) {
+        setBothMapTile(gameState.playerX * 2, gameState.playerY * 2, TILE_EMPTY);
+        gameState.objectGrid[gameState.playerX][gameState.playerY].object = TILE_EMPTY;
+        SET_STATE(gameState.objectGrid[gameState.playerX][gameState.playerY], STATE_STATIONARY);
+        
+        setVisualMapTile(newX * 2, newY * 2, TILE_PLAYER);
+        setBetweenFramesMapTile((newX * 2) - dirX, (newY * 2) - dirY, TILE_PLAYER);
+        gameState.objectGrid[newX][newY].object = TILE_PLAYER;
+        SET_STATE(gameState.objectGrid[newX][newY], STATE_STATIONARY);
+        
+        gameState.playerX = newX;
+        gameState.playerY = newY;
+        SET_SCANNED(gameState.objectGrid[newX][newY]);
+    } else {
+        setBothMapTile(newX * 2, newY * 2, TILE_EMPTY);
+        gameState.objectGrid[newX][newY].object = TILE_EMPTY;
+        SET_STATE(gameState.objectGrid[newX][newY], STATE_STATIONARY);
+    }
+    gameState.moveCount++;
+    if (gameState.physicsWaitingForPlayer) {
+        gameState.physicsWaitingForPlayer = FALSE;
+        incrementPhysicsPosition();
+    }
+}
 
 void drawPauseMenu() {
     VDP_clearPlane(BG_B, FALSE);
