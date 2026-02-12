@@ -12,7 +12,6 @@
 char* fatalErrorString = NULL;
 u16 basePalette[16];
 u16 darkenedPalette[16];
-
 void engineInit()
 {
     VDP_setScreenWidth320();
@@ -30,14 +29,25 @@ void engineInit()
         darkenedPalette[i] = (b << 9) | (g << 5) | (r << 1);
     }
 
+    basePalette[0] = RGB24_TO_VDPCOLOR(0x000000);
+    darkenedPalette[0] = RGB24_TO_VDPCOLOR(0x000000);
     PAL_setPalette(PAL0, basePalette, DMA);
     PAL_setPalette(PAL1, basePalette, DMA);
 
     VDP_loadTileSet(bg_tilemap.tileset, TILE_USER_INDEX, DMA);
-    PAL_setColor(63, RGB24_TO_VDPCOLOR(0xFFFFFF));
+    refreshBackground();
     JOY_init();
 }
+void refreshBackground() {
+    VDP_loadTileSet(bg_background.tileset, TILE_USER_INDEX + 255, DMA);
+    VDP_setTileMapEx(BG_B, bg_background.tilemap, 
+                    TILE_ATTR_FULL(PAL2, 0, 0, 0, TILE_USER_INDEX + 255),
+                    0, 0, 0, 0, 
+                    bg_background.tilemap->w, bg_background.tilemap->h, 
+                    DMA);
+    PAL_setPalette(PAL2, bg_background.palette->data, DMA);
 
+}
 void fatalError(const char* message) {
     VDP_clearPlane(BG_A, TRUE);
     VDP_drawText("FATAL ERROR:", 10, 10);

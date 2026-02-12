@@ -51,6 +51,8 @@ void drawPauseMenu() {
 void unpause() {
     gameState.gameState = GAME_STATE_PLAYING;
     VDP_clearPlane(BG_B, TRUE);
+    refreshBackground();
+        
     VDP_setTextPlane(BG_A);
     PAL_setPalette(PAL0, basePalette, DMA);
 }

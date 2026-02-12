@@ -20,8 +20,11 @@ int main()
         playerHandleInput();
         
         if (gameState.gameState == GAME_STATE_PLAYING) {
-            gameUpdatePhysics();
-            engineRender();
+            if (frameCounter % 4 == 0) { 
+                gameUpdatePhysics();
+                engineRender();
+            }
+            frameCounter++;
         }
         
         SYS_doVBlankProcess();

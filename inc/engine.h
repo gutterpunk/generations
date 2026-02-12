@@ -15,5 +15,5 @@ void engineRender();
 void engineUpdateCamera();
 //void engineDrawUI();
 void fatalError(const char* message);
-
+void refreshBackground();
 #endif

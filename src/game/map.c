@@ -124,10 +124,11 @@ void mapInit(u16 boardIndex)
 
 void mapDrawPlayfield(bool inBetweenFrames)
 {
-    u8 (*sourceGrid)[MAX_GRID_SIZE * 2] = inBetweenFrames 
+    
+    bool forceBetween = inBetweenFrames || gameState.physicsWaitingForPlayer;
+    u8 (*sourceGrid)[MAX_GRID_SIZE * 2] = forceBetween 
         ? gameState.betweenFramesGrid 
         : gameState.visualGrid;
-    frameCounter++;
     u8 offsetX = (64 - (gameState.gridWidth * 2)) / 2;
     u8 offsetY = (32 - (gameState.gridHeight * 2)) / 2;
     for (u8 x = 0; x < gameState.gridWidth * 2; x++) {

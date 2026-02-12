@@ -24,3 +24,7 @@ Other mechanics from Supaplex comes to mind as well.
 No, it's a puzzle game based on the mechanics of those games. Each boards has been generated (with good old non-ai Iterative Deepening, like a chess solver) and include the best possible solution. The game is presented as a trainer for retro games, and many of the mechanics it relies on would work in the original games, but some others are not possible.
 
 Pushing objects is instant, which makes a big difference, but other mechanics like walking beside enemies or playing with the board's refresh also work in the originals.
+
+## Credits
+
+The space background: https://deep-fold.itch.io/space-background-generator
